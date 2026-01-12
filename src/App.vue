@@ -8,7 +8,7 @@
     <main class="main-content">
       <div class="date-navigation-section">
         <div class="date-navigation">
-          <button @click="goToPreviousDate" class="btn-nav">← 이전</button>
+          <button @click="goToPreviousDate" class="btn-nav" title="이전 날짜">◀</button>
           <div class="date-display">
             <input
               v-model="selectedDate"
@@ -17,7 +17,7 @@
             />
             <span class="date-label">{{ formatDate(selectedDate) }}</span>
           </div>
-          <button @click="goToNextDate" class="btn-nav">다음 →</button>
+          <button @click="goToNextDate" class="btn-nav" title="다음 날짜">▶</button>
         </div>
       </div>
 
@@ -249,6 +249,13 @@ export default {
   max-width: 900px;
   margin: 0 auto;
   padding: 2rem 1rem;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .app {
+    padding: 1rem 0.75rem;
+  }
 }
 
 .header {
@@ -295,16 +302,65 @@ export default {
   }
 }
 
+/* 모바일 반응형 스타일 */
+@media (max-width: 768px) {
+  .date-navigation {
+    padding: 0.75rem 0.5rem;
+    gap: 0.4rem;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .btn-nav {
+    width: 44px;
+    height: 44px;
+    padding: 0.5rem;
+    font-size: 1rem;
+  }
+  
+  .date-display {
+    min-width: 0;
+    flex: 1 1 auto;
+    gap: 0.25rem;
+    overflow: hidden;
+  }
+  
+  .date-input {
+    width: 100%;
+    max-width: 100%;
+    font-size: 0.75rem;
+    padding: 0.3rem 0.2rem;
+    box-sizing: border-box;
+  }
+  
+  .date-label {
+    font-size: 0.75rem;
+    text-align: center;
+    word-break: keep-all;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100%;
+  }
+}
+
 .btn-nav {
-  padding: 0.75rem 1.5rem;
+  padding: 0.75rem;
   border: 2px solid #667eea;
-  border-radius: 8px;
+  border-radius: 50%;
   background: transparent;
   color: #667eea;
-  font-size: 1rem;
+  font-size: 1.2rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .btn-nav:hover {
@@ -320,6 +376,7 @@ export default {
   align-items: center;
   gap: 0.5rem;
   min-width: 200px;
+  flex: 1;
 }
 
 .date-input {
