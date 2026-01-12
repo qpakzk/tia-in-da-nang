@@ -38,6 +38,8 @@
                   :src="getImageUrl(food.image)"
                   :alt="food.name"
                   class="food-image"
+                  loading="eager"
+                  decoding="async"
                   @error="handleImageError"
                 />
               </div>
@@ -144,15 +146,38 @@ export default {
     })
 
     const getImageUrl = (imagePath) => {
-      // 이미지 경로가 이미 /로 시작하면 그대로 사용, 아니면 base path 추가
+      // 이미지 경로가 이미 /로 시작하면 그대로 사용
       if (imagePath.startsWith('/')) {
         return imagePath
       }
-      return `/tia-in-da-nang/${imagePath}`
+      // base path 가져오기 (빌드 시 vite.config.js의 base 설정 사용)
+      let base = import.meta.env.BASE_URL || '/tia-in-da-nang/'
+      
+      // 카카오톡 웹뷰에서 import.meta.env.BASE_URL이 제대로 동작하지 않을 수 있으므로
+      // 현재 location.pathname을 기반으로 base path 추출
+      if (typeof window !== 'undefined') {
+        const pathname = window.location.pathname
+        if (pathname.startsWith('/tia-in-da-nang')) {
+          base = '/tia-in-da-nang/'
+        }
+      }
+      
+      // base path가 /로 끝나지 않으면 / 추가
+      const basePath = base.endsWith('/') ? base : `${base}/`
+      const fullPath = `${basePath}${imagePath}`
+      
+      // 절대 URL로 변환 (카카오톡 웹뷰 호환성)
+      if (typeof window !== 'undefined' && !fullPath.startsWith('http')) {
+        return new URL(fullPath, window.location.origin).href
+      }
+      
+      return fullPath
     }
 
     const handleImageError = (event) => {
-      // 이미지 로드 실패 시 숨김 처리
+      // 이미지 로드 실패 시 콘솔에 로그 출력 (디버깅용)
+      console.error('이미지 로드 실패:', event.target.src)
+      // 이미지 숨김 처리
       event.target.style.display = 'none'
     }
 
