@@ -15,7 +15,17 @@
               type="date"
               class="date-input"
             />
-            <span class="date-label">{{ formatDate(selectedDate) }}</span>
+            <div class="date-label-wrapper">
+              <span class="date-label">{{ formatDate(selectedDate) }}</span>
+              <button 
+                v-if="selectedDate !== getTodayDate()" 
+                @click="goToToday" 
+                class="btn-today"
+                title="오늘로 이동"
+              >
+                오늘
+              </button>
+            </div>
           </div>
           <button @click="goToNextDate" class="btn-nav" title="다음 날짜">▶</button>
         </div>
@@ -116,6 +126,15 @@ export default {
   setup() {
     const foods = ref(foodsData)
     
+    // 로컬 시간대의 오늘 날짜를 YYYY-MM-DD 형식으로 반환
+    const getTodayDate = () => {
+      const now = new Date()
+      const year = now.getFullYear()
+      const month = String(now.getMonth() + 1).padStart(2, '0')
+      const day = String(now.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+    
     // URL에서 날짜 읽기
     const getDateFromUrl = () => {
       const params = new URLSearchParams(window.location.search)
@@ -127,7 +146,7 @@ export default {
           return dateParam
         }
       }
-      return new Date().toISOString().split('T')[0]
+      return getTodayDate()
     }
     
     const selectedDate = ref(getDateFromUrl())
@@ -182,15 +201,25 @@ export default {
     }
 
     const goToPreviousDate = () => {
-      const date = new Date(selectedDate.value)
+      const date = new Date(selectedDate.value + 'T00:00:00')
       date.setDate(date.getDate() - 1)
-      selectedDate.value = date.toISOString().split('T')[0]
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      selectedDate.value = `${year}-${month}-${day}`
     }
 
     const goToNextDate = () => {
-      const date = new Date(selectedDate.value)
+      const date = new Date(selectedDate.value + 'T00:00:00')
       date.setDate(date.getDate() + 1)
-      selectedDate.value = date.toISOString().split('T')[0]
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      selectedDate.value = `${year}-${month}-${day}`
+    }
+    
+    const goToToday = () => {
+      selectedDate.value = getTodayDate()
     }
     
     // 날짜 변경 감지하여 URL 업데이트
@@ -211,16 +240,18 @@ export default {
     })
 
     const formatDate = (dateString) => {
-      const date = new Date(dateString)
-      const today = new Date()
-      const yesterday = new Date(today)
-      yesterday.setDate(yesterday.getDate() - 1)
-
-      if (dateString === today.toISOString().split('T')[0]) {
+      const today = getTodayDate()
+      const todayDate = new Date(today + 'T00:00:00')
+      const yesterdayDate = new Date(todayDate)
+      yesterdayDate.setDate(yesterdayDate.getDate() - 1)
+      const yesterday = `${yesterdayDate.getFullYear()}-${String(yesterdayDate.getMonth() + 1).padStart(2, '0')}-${String(yesterdayDate.getDate()).padStart(2, '0')}`
+      
+      if (dateString === today) {
         return '오늘'
-      } else if (dateString === yesterday.toISOString().split('T')[0]) {
+      } else if (dateString === yesterday) {
         return '어제'
       } else {
+        const date = new Date(dateString + 'T00:00:00')
         return date.toLocaleDateString('ko-KR', {
           year: 'numeric',
           month: 'long',
@@ -235,6 +266,8 @@ export default {
       selectedDateFoods,
       goToPreviousDate,
       goToNextDate,
+      goToToday,
+      getTodayDate,
       formatDate,
       getImageUrl,
       handleImageError
@@ -407,10 +440,47 @@ export default {
   }
 }
 
+.date-label-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
 .date-label {
   font-size: 1.1rem;
   font-weight: 600;
   color: #764ba2;
+}
+
+.btn-today {
+  padding: 0.25rem 0.75rem;
+  border: 1px solid #667eea;
+  border-radius: 12px;
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-today:hover {
+  background: #667eea;
+  color: white;
+}
+
+@media (max-width: 768px) {
+  .date-label-wrapper {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .btn-today {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.6rem;
+  }
 }
 
 .food-list-section {
