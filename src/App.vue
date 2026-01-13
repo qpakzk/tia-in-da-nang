@@ -69,281 +69,31 @@
 
 <script>
 import { ref, computed, watch, onMounted } from 'vue'
+import restaurantsData from './data/restaurants.json'
 
-// 새로운 데이터 구조:
-// {
-//   restaurant: '식당 이름',  // 선택사항 (null이면 식당 없음)
-//   date: '2024-01-01',  // YYYY-MM-DD 형식
-//   addedAt: '2024-01-01T00:00:00.000Z',  // ISO 형식
-//   foods: [
-//     {
-//       name: '음식 이름',
-//       description: '음식 설명',  // 선택사항
-//       images: ['images/파일명1.jpg', 'images/파일명2.jpg']  // 이미지 배열
-//     }
-//   ]
-// }
-const restaurantsData = [
-  {
-    restaurant: '콩 카페',
-    date: '2026-01-11',
-    addedAt: '2026-01-11T10:35:00.000Z',
-    foods: [
-      {
-        name: '코코넛 커피',
-        images: ['images/2026-01-11 10.35.06.jpg', 'images/2026-01-11 10.35.08.jpg']
-      }
-    ]
-  },
-  {
-    restaurant: '안토이',
-    date: '2026-01-11',
-    addedAt: '2026-01-11T12:23:00.000Z',
-    foods: [
-      {
-        name: '곱창 쌀국수',
-        images: ['images/2026-01-11 12.23.49.jpg']
-      },
-      {
-        name: '반세오',
-        images: ['images/2026-01-11 12.24.42.jpg']
-      }
-    ]
-  },
-  {
-    restaurant: '스타벅스',
-    date: '2026-01-11',
-    addedAt: '2026-01-11T13:45:00.000Z',
-    foods: [
-      {
-        name: '에스프레소',
-        images: ['images/2026-01-11 13.45.37-1.jpg']
-      }
-    ]
-  },
-  {
-    restaurant: 'Quan Vu Xuyen Seafood',
-    date: '2026-01-11',
-    addedAt: '2026-01-11T18:12:00.000Z',
-    foods: [
-      {
-        name: '새우 구이',
-        images: ['images/2026-01-11 18.12.00.jpg']
-      },
-      {
-        name: '병어찜',
-        images: ['images/2026-01-11 18.23.49.jpg']
-      }
-    ]
-  },
-  {
-    restaurant: 'Nice Coffe',
-    date: '2026-01-11',
-    addedAt: '2026-01-11T19:16:00.000Z',
-    foods: [
-      {
-        name: '반미',
-        images: ['images/2026-01-11 19.16.34.jpg']
-      }
-    ]
-  },
-  {
-    restaurant: 'Merry Land Hotel',
-    date: '2026-01-12',
-    addedAt: '2026-01-12T08:15:00.000Z',
-    foods: [
-      {
-        name: '호텔 조식',
-        images: ['images/2026-01-12 08.15.25.jpg','images/2026-01-12 08.29.42.jpg']
-      },
-    ]
-  },
-  {
-    restaurant: '롯데마트 Highlands Coffee',
-    date: '2026-01-12',
-    addedAt: '2026-01-12T10:32:00.000Z',
-    foods: [
-      {
-        name: '에스프레스',
-        images: ['images/2026-01-12 10.32.54.jpg']
-      },
-    ]
-  },
-  {
-    restaurant: '롯데마트 식당',
-    date: '2026-01-12',
-    addedAt: '2026-01-12T12:12:39.000Z',
-    foods: [
-      {
-        name: '파인애플 복음밥',
-        images: ['images/2026-01-12 12.39.26.jpg']
-      },
-      {
-        name: '코코넛',
-        images: ['images/2026-01-12 12.47.19.jpg']
-      },
-      {
-        name: '모닝글로리',
-        images: ['images/2026-01-12 12.45.16.jpg']
-      },
-    ]
-  },
-  {
-    restaurant: '박미안 시장',
-    date: '2026-01-12',
-    addedAt: '2026-01-12T14:28:39.000Z',
-    foods: [
-      {
-        name: '두리안',
-        images: ['images/2026-01-12 14.28.20.jpg']
-      },
-      {
-        name: '코코넛',
-        images: ['images/2026-01-12 14.30.15.jpg']
-      },
-    ]
-  },
-  {
-    restaurant: 'Dalky Kafe',
-    date: '2026-01-12',
-    addedAt: '2026-01-12T15:42:00.000Z',
-    foods: [
-      {
-        name: '코코넛 커피',
-        images: ['images/2026-01-12 15.42.59.jpg']
-      },
-    ]
-  },
-  {
-    restaurant: '롯데마트 신선 코너',
-    date: '2026-01-12',
-    addedAt: '2026-01-12T20:20:00.000Z',
-    foods: [
-      {
-        name: '두리안',
-        images: ['images/2026-01-12 20.20.10.jpg']
-      },
-      {
-        name: '잭프루트',
-        images: ['images/2026-01-12 20.20.14.jpg']
-      }
-    ]
-  },
-  {
-    restaurant: 'Nice Coffe',
-    date: '2026-01-12',
-    addedAt: '2026-01-12T21:11:00.000Z',
-    foods: [
-      {
-        name: '아메리카노',
-        images: ['images/2026-01-12 21.11.26.jpg']
-      },
-      {
-        name: '샌드위치',
-        images: ['images/2026-01-12 21.17.37.jpg', 'images/2026-01-12 21.17.46.jpg']
-      },
-    ]
-  },
-  {
-    restaurant: 'Merry Land Hotel',
-    date: '2026-01-13',
-    addedAt: '2026-01-13T08:21:00.000Z',
-    foods: [
-      {
-        name: '조식',
-        images: ['images/2026-01-13 08.21.36.jpg', 'images/2026-01-13 08.23.23.jpg']
-      },
-    ]
-  },
-  {
-    restaurant: 'Nice Coffe',
-    date: '2026-01-13',
-    addedAt: '2026-01-13T09:43.0.000Z',
-    foods: [
-      {
-        name: '에스프레소',
-        images: ['images/2026-01-13 09.43.13.jpg']
-      },
-    ]
-  },
-  {
-    restaurant: '목식당',
-    date: '2026-01-13',
-    addedAt: '2026-01-13T11:55.0.000Z',
-    foods: [
-      {
-        name: '모닝글로리',
-        images: ['images/2026-01-13 11.55.54.jpg']
-      },
-      {
-        name: '새우구이',
-        images: ['images/2026-01-13 11.57.24.jpg','images/2026-01-13 12.01.14.jpg']
-      },
-      {
-        name: '크레이피쉬',
-        images: ['images/2026-01-13 12.13.07.jpg', 'images/2026-01-13 12.16.53.jpg']
-      }
-    ]
-  },
-  {
-    restaurant: '못카페',
-    date: '2026-01-13',
-    addedAt: '2026-01-13T15:49.0.000Z',
-    foods: [
-      {
-        name: '허브티',
-        images: ['images/2026-01-13 15.49.36.jpg']
-      },
-    ]
-  },
-  {
-    restaurant: '잡상인 방문 판매',
-    date: '2026-01-13',
-    addedAt: '2026-01-13T16:03.0.000Z',
-    foods: [
-      {
-        name: '땅콩엿',
-        images: ['images/2026-01-13 16.03.18.jpg']
-      },
-    ],
-  },
-  {
-    restaurant: 'Cafe Bi',
-    date: '2026-01-13',
-    addedAt: '2026-01-13T17:03.0.000Z',
-    foods: [
-      {
-        name: '베트남 블랙 커피',
-        images: ['images/2026-01-13 17.03.49.jpg']
-      },
-    ]
-  },
-  {
-    restaurant: 'Nice Coffe',
-    date: '2026-01-13',
-    addedAt: '2026-01-13T20:59.0.000Z',
-    foods: [
-      {
-        name: '코코넛 커피',
-        images: ['images/2026-01-13 20.59.16.jpg']
-      },
-      {
-        name: '샌드위치',
-        images: ['images/2026-01-13 21.08.06.jpg']
-      },
-      {
-        name: '반미',
-        images: ['images/2026-01-13 21.08.10.jpg']
-      }
-    ]
-  },
-]
+// 데이터 구조:
+// [
+//   {
+//     date: '2024-01-01',  // YYYY-MM-DD 형식
+//     restaurants: [
+//       {
+//         restaurant: '식당 이름',  // 선택사항 (null이면 식당 없음)
+//         addedAt: '2024-01-01T00:00:00.000Z',  // ISO 형식
+//         foods: [
+//           {
+//             name: '음식 이름',
+//             description: '음식 설명',  // 선택사항
+//             images: ['images/파일명1.jpg', 'images/파일명2.jpg']  // 이미지 배열
+//           }
+//         ]
+//       }
+//     ]
+//   }
+// ]
 
 export default {
   name: 'App',
   setup() {
-    const restaurants = ref(restaurantsData)
-    
     // 로컬 시간대의 오늘 날짜를 YYYY-MM-DD 형식으로 반환
     const getTodayDate = () => {
       const now = new Date()
@@ -376,10 +126,14 @@ export default {
       window.history.pushState({ date }, '', url)
     }
 
+    // 선택된 날짜의 레스토랑 목록을 반환
     const selectedDateRestaurants = computed(() => {
-      return restaurants.value
-        .filter(restaurant => restaurant.date === selectedDate.value)
-        .sort((a, b) => new Date(a.addedAt) - new Date(b.addedAt))
+      const dateEntry = restaurantsData.find(entry => entry.date === selectedDate.value)
+      if (!dateEntry) {
+        return []
+      }
+      // addedAt 기준으로 정렬
+      return dateEntry.restaurants.sort((a, b) => new Date(a.addedAt) - new Date(b.addedAt))
     })
 
     const getImageUrl = (imagePath) => {

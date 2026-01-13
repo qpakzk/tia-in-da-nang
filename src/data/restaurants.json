@@ -1,0 +1,251 @@
+[
+  {
+    "date": "2026-01-11",
+    "restaurants": [
+      {
+        "restaurant": "콩 카페",
+        "addedAt": "2026-01-11T10:35:00.000Z",
+        "foods": [
+          {
+            "name": "코코넛 커피",
+            "images": ["images/2026-01-11 10.35.06.jpg", "images/2026-01-11 10.35.08.jpg"]
+          }
+        ]
+      },
+      {
+        "restaurant": "안토이",
+        "addedAt": "2026-01-11T12:23:00.000Z",
+        "foods": [
+          {
+            "name": "곱창 쌀국수",
+            "images": ["images/2026-01-11 12.23.49.jpg"]
+          },
+          {
+            "name": "반세오",
+            "images": ["images/2026-01-11 12.24.42.jpg"]
+          }
+        ]
+      },
+      {
+        "restaurant": "스타벅스",
+        "addedAt": "2026-01-11T13:45:00.000Z",
+        "foods": [
+          {
+            "name": "에스프레소",
+            "images": ["images/2026-01-11 13.45.37-1.jpg"]
+          }
+        ]
+      },
+      {
+        "restaurant": "Quan Vu Xuyen Seafood",
+        "addedAt": "2026-01-11T18:12:00.000Z",
+        "foods": [
+          {
+            "name": "새우 구이",
+            "images": ["images/2026-01-11 18.12.00.jpg"]
+          },
+          {
+            "name": "병어찜",
+            "images": ["images/2026-01-11 18.23.49.jpg"]
+          }
+        ]
+      },
+      {
+        "restaurant": "Nice Coffe",
+        "addedAt": "2026-01-11T19:16:00.000Z",
+        "foods": [
+          {
+            "name": "반미",
+            "images": ["images/2026-01-11 19.16.34.jpg"]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "date": "2026-01-12",
+    "restaurants": [
+      {
+        "restaurant": "Merry Land Hotel",
+        "addedAt": "2026-01-12T08:15:00.000Z",
+        "foods": [
+          {
+            "name": "호텔 조식",
+            "images": ["images/2026-01-12 08.15.25.jpg", "images/2026-01-12 08.29.42.jpg"]
+          }
+        ]
+      },
+      {
+        "restaurant": "롯데마트 Highlands Coffee",
+        "addedAt": "2026-01-12T10:32:00.000Z",
+        "foods": [
+          {
+            "name": "에스프레스",
+            "images": ["images/2026-01-12 10.32.54.jpg"]
+          }
+        ]
+      },
+      {
+        "restaurant": "롯데마트 식당",
+        "addedAt": "2026-01-12T12:12:39.000Z",
+        "foods": [
+          {
+            "name": "파인애플 복음밥",
+            "images": ["images/2026-01-12 12.39.26.jpg"]
+          },
+          {
+            "name": "코코넛",
+            "images": ["images/2026-01-12 12.47.19.jpg"]
+          },
+          {
+            "name": "모닝글로리",
+            "images": ["images/2026-01-12 12.45.16.jpg"]
+          }
+        ]
+      },
+      {
+        "restaurant": "박미안 시장",
+        "addedAt": "2026-01-12T14:28:39.000Z",
+        "foods": [
+          {
+            "name": "두리안",
+            "images": ["images/2026-01-12 14.28.20.jpg"]
+          },
+          {
+            "name": "코코넛",
+            "images": ["images/2026-01-12 14.30.15.jpg"]
+          }
+        ]
+      },
+      {
+        "restaurant": "Dalky Kafe",
+        "addedAt": "2026-01-12T15:42:00.000Z",
+        "foods": [
+          {
+            "name": "코코넛 커피",
+            "images": ["images/2026-01-12 15.42.59.jpg"]
+          }
+        ]
+      },
+      {
+        "restaurant": "롯데마트 신선 코너",
+        "addedAt": "2026-01-12T20:20:00.000Z",
+        "foods": [
+          {
+            "name": "두리안",
+            "images": ["images/2026-01-12 20.20.10.jpg"]
+          },
+          {
+            "name": "잭프루트",
+            "images": ["images/2026-01-12 20.20.14.jpg"]
+          }
+        ]
+      },
+      {
+        "restaurant": "Nice Coffe",
+        "addedAt": "2026-01-12T21:11:00.000Z",
+        "foods": [
+          {
+            "name": "아메리카노",
+            "images": ["images/2026-01-12 21.11.26.jpg"]
+          },
+          {
+            "name": "샌드위치",
+            "images": ["images/2026-01-12 21.17.37.jpg", "images/2026-01-12 21.17.46.jpg"]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "date": "2026-01-13",
+    "restaurants": [
+      {
+        "restaurant": "Merry Land Hotel",
+        "addedAt": "2026-01-13T08:21:00.000Z",
+        "foods": [
+          {
+            "name": "조식",
+            "images": ["images/2026-01-13 08.21.36.jpg", "images/2026-01-13 08.23.23.jpg"]
+          }
+        ]
+      },
+      {
+        "restaurant": "Nice Coffe",
+        "addedAt": "2026-01-13T09:43:00.000Z",
+        "foods": [
+          {
+            "name": "에스프레소",
+            "images": ["images/2026-01-13 09.43.13.jpg"]
+          }
+        ]
+      },
+      {
+        "restaurant": "목식당",
+        "addedAt": "2026-01-13T11:55:00.000Z",
+        "foods": [
+          {
+            "name": "모닝글로리",
+            "images": ["images/2026-01-13 11.55.54.jpg"]
+          },
+          {
+            "name": "새우구이",
+            "images": ["images/2026-01-13 11.57.24.jpg", "images/2026-01-13 12.01.14.jpg"]
+          },
+          {
+            "name": "크레이피쉬",
+            "images": ["images/2026-01-13 12.13.07.jpg", "images/2026-01-13 12.16.53.jpg"]
+          }
+        ]
+      },
+      {
+        "restaurant": "못카페",
+        "addedAt": "2026-01-13T15:49:00.000Z",
+        "foods": [
+          {
+            "name": "허브티",
+            "images": ["images/2026-01-13 15.49.36.jpg"]
+          }
+        ]
+      },
+      {
+        "restaurant": "잡상인 방문 판매",
+        "addedAt": "2026-01-13T16:03:00.000Z",
+        "foods": [
+          {
+            "name": "땅콩엿",
+            "images": ["images/2026-01-13 16.03.18.jpg"]
+          }
+        ]
+      },
+      {
+        "restaurant": "Cafe Bi",
+        "addedAt": "2026-01-13T17:03:00.000Z",
+        "foods": [
+          {
+            "name": "베트남 블랙 커피",
+            "images": ["images/2026-01-13 17.03.49.jpg"]
+          }
+        ]
+      },
+      {
+        "restaurant": "Nice Coffe",
+        "addedAt": "2026-01-13T20:59:00.000Z",
+        "foods": [
+          {
+            "name": "코코넛 커피",
+            "images": ["images/2026-01-13 20.59.16.jpg"]
+          },
+          {
+            "name": "샌드위치",
+            "images": ["images/2026-01-13 21.08.06.jpg"]
+          },
+          {
+            "name": "반미",
+            "images": ["images/2026-01-13 21.08.10.jpg"]
+          }
+        ]
+      }
+    ]
+  }
+]
