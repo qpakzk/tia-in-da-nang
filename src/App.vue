@@ -33,27 +33,34 @@
 
       <div class="food-list-section">
         <h2>{{ formatDate(selectedDate) }} 먹은 음식</h2>
-        <div v-if="selectedDateFoods.length === 0" class="empty-state">
+        <div v-if="selectedDateRestaurants.length === 0" class="empty-state">
           이 날짜에 아직 음식을 추가하지 않았습니다.
         </div>
-        <ul v-else class="food-list">
-          <li v-for="(food, index) in selectedDateFoods" :key="index" class="food-item">
-            <div class="food-content">
-              <div class="food-info">
-                <span class="food-name">{{ food.name }}</span>
-                <p v-if="food.description" class="food-description">{{ food.description }}</p>
-                <p v-if="food.location" class="food-location">📍 {{ food.location }}</p>
-                <img
-                  v-if="food.image"
-                  :src="getImageUrl(food.image)"
-                  :alt="food.name"
-                  class="food-image"
-                  loading="eager"
-                  decoding="async"
-                  @error="handleImageError"
-                />
-              </div>
-            </div>
+        <ul v-else class="restaurant-list">
+          <li v-for="(restaurant, restaurantIndex) in selectedDateRestaurants" :key="restaurantIndex" class="restaurant-item">
+            <div v-if="restaurant.restaurant" class="restaurant-name">📍 {{ restaurant.restaurant }}</div>
+            <ul class="food-list">
+              <li v-for="(food, foodIndex) in restaurant.foods" :key="foodIndex" class="food-item">
+                <div class="food-content">
+                  <div class="food-info">
+                    <span class="food-name">{{ food.name }}</span>
+                    <p v-if="food.description" class="food-description">{{ food.description }}</p>
+                    <div v-if="food.images && food.images.length > 0" class="food-images">
+                      <img
+                        v-for="(image, imageIndex) in food.images"
+                        :key="imageIndex"
+                        :src="getImageUrl(image)"
+                        :alt="`${food.name} ${imageIndex + 1}`"
+                        class="food-image"
+                        loading="eager"
+                        decoding="async"
+                        @error="handleImageError"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </li>
+            </ul>
           </li>
         </ul>
       </div>
@@ -64,67 +71,186 @@
 <script>
 import { ref, computed, watch, onMounted } from 'vue'
 
-// 형식:
+// 새로운 데이터 구조:
 // {
-//   name: '음식 이름',
-//   image: 'images/파일명.jpg',  // 선택사항
-//   description: '음식 설명',  // 선택사항
-//   location: '위치/가게명',  // 선택사항
+//   restaurant: '식당 이름',  // 선택사항 (null이면 식당 없음)
 //   date: '2024-01-01',  // YYYY-MM-DD 형식
-//   addedAt: '2024-01-01T00:00:00.000Z'  // ISO 형식
+//   addedAt: '2024-01-01T00:00:00.000Z',  // ISO 형식
+//   foods: [
+//     {
+//       name: '음식 이름',
+//       description: '음식 설명',  // 선택사항
+//       images: ['images/파일명1.jpg', 'images/파일명2.jpg']  // 이미지 배열
+//     }
+//   ]
 // }
-const foodsData = [
+const restaurantsData = [
   {
-    name: '곱창 쌀국수',
-    image: 'images/IMG_8283.png',
+    restaurant: '콩 카페',
     date: '2026-01-11',
-    addedAt: '2026-01-11T12:00:00.000Z'
+    addedAt: '2026-01-11T10:35:00.000Z',
+    foods: [
+      {
+        name: '코코넛 커피',
+        images: ['images/2026-01-11 10.35.06.jpg', 'images/2026-01-11 10.35.08.jpg']
+      }
+    ]
   },
   {
-    name: '반세오',
-    image: 'images/IMG_8285.png',
+    restaurant: '안토이',
     date: '2026-01-11',
-    addedAt: '2026-01-11T12:00:00.000Z'
+    addedAt: '2026-01-11T12:23:00.000Z',
+    foods: [
+      {
+        name: '곱창 쌀국수',
+        images: ['images/2026-01-11 12.23.49.jpg']
+      },
+      {
+        name: '반세오',
+        images: ['images/2026-01-11 12.24.42.jpg']
+      }
+    ]
   },
   {
-    name: '코코넛 커피',
-    image: 'images/IMG_8277.png',
-    location: '콩 카페',
+    restaurant: '스타벅스',
     date: '2026-01-11',
-    addedAt: '2026-01-11T12:00:00.000Z'
+    addedAt: '2026-01-11T13:45:00.000Z',
+    foods: [
+      {
+        name: '에스프레소',
+        images: ['images/2026-01-11 13.45.37-1.jpg']
+      }
+    ]
   },
   {
-    name: '코코넛 커피',
-    image: 'images/IMG_8278.png',
-    location: '콩 카페',
+    restaurant: 'Quan Vu Xuyen Seafood',
     date: '2026-01-11',
-    addedAt: '2026-01-11T12:00:00.000Z'
+    addedAt: '2026-01-11T18:12:00.000Z',
+    foods: [
+      {
+        name: '새우 구이',
+        images: ['images/2026-01-11 18.12.00.jpg']
+      },
+      {
+        name: '병어찜',
+        images: ['images/2026-01-11 18.23.49.jpg']
+      }
+    ]
   },
   {
-    name: '새우 구이',
-    image: 'images/IMG_8309.png',
+    restaurant: 'Nice Coffe',
     date: '2026-01-11',
-    addedAt: '2026-01-11T12:00:00.000Z'
+    addedAt: '2026-01-11T19:16:00.000Z',
+    foods: [
+      {
+        name: '반미',
+        images: ['images/2026-01-11 19.16.34.jpg']
+      }
+    ]
   },
   {
-    name: '병어찜',
-    image: 'images/IMG_8310.png',
-    date: '2026-01-11',
-    addedAt: '2026-01-11T12:00:00.000Z'
+    restaurant: 'Merry Land Hotel',
+    date: '2026-01-12',
+    addedAt: '2026-01-12T08:15:00.000Z',
+    foods: [
+      {
+        name: '호텔 조식',
+        images: ['images/2026-01-12 08.15.25.jpg','images/2026-01-12 08.29.42.jpg']
+      },
+    ]
   },
   {
-    name: '반미',
-    image: 'images/IMG_8316.png',
-    date: '2026-01-11',
-    location: 'Nice Coffe',
-    addedAt: '2026-01-11T12:00:00.000Z'
+    restaurant: '롯데마트 Highlands Coffee',
+    date: '2026-01-12',
+    addedAt: '2026-01-12T10:32:00.000Z',
+    foods: [
+      {
+        name: '에스프레스',
+        images: ['images/2026-01-12 10.32.54.jpg']
+      },
+    ]
   },
+  {
+    restaurant: '롯데마트 식당',
+    date: '2026-01-12',
+    addedAt: '2026-01-12T12:12:39.000Z',
+    foods: [
+      {
+        name: '파인애플 복음밥',
+        images: ['images/2026-01-12 12.39.26.jpg']
+      },
+      {
+        name: '코코넛',
+        images: ['images/2026-01-12 12.47.19.jpg']
+      },
+      {
+        name: '모닝글로리',
+        images: ['images/2026-01-12 12.45.16.jpg']
+      },
+    ]
+  },
+  {
+    restaurant: '박미안 시장',
+    date: '2026-01-12',
+    addedAt: '2026-01-12T14:28:39.000Z',
+    foods: [
+      {
+        name: '두리안',
+        images: ['images/2026-01-12 14.28.20.jpg']
+      },
+      {
+        name: '코코넛',
+        images: ['images/2026-01-12 14.30.15.jpg']
+      },
+    ]
+  },
+  {
+    restaurant: 'Dalky Kafe',
+    date: '2026-01-12',
+    addedAt: '2026-01-12T15:42:00.000Z',
+    foods: [
+      {
+        name: '코코넛 커피',
+        images: ['images/2026-01-12 15.42.59.jpg']
+      },
+    ]
+  },
+  {
+    restaurant: '롯데마트 신선 코너',
+    date: '2026-01-12',
+    addedAt: '2026-01-12T20:20:00.000Z',
+    foods: [
+      {
+        name: '두리안',
+        images: ['images/2026-01-12 20.20.10.jpg']
+      },
+      {
+        name: '잭프루트',
+        images: ['images/2026-01-12 20.20.14.jpg']
+      }
+    ]
+  },
+  {
+    restaurant: 'Nice Coffe',
+    date: '2026-01-12',
+    addedAt: '2026-01-12T21:11:00.000Z',
+    foods: [
+      {
+        name: '아메리카노',
+        images: ['images/2026-01-12 21.11.26.jpg']
+      },
+      {
+        name: '샌드위치',
+        images: ['images/2026-01-12 21.17.37.jpg', 'images/2026-01-12 21.17.46.jpg']
+      },
+    ]
+  }
 ]
 
 export default {
   name: 'App',
   setup() {
-    const foods = ref(foodsData)
+    const restaurants = ref(restaurantsData)
     
     // 로컬 시간대의 오늘 날짜를 YYYY-MM-DD 형식으로 반환
     const getTodayDate = () => {
@@ -158,36 +284,35 @@ export default {
       window.history.pushState({ date }, '', url)
     }
 
-    const selectedDateFoods = computed(() => {
-      return foods.value
-        .filter(food => food.date === selectedDate.value)
+    const selectedDateRestaurants = computed(() => {
+      return restaurants.value
+        .filter(restaurant => restaurant.date === selectedDate.value)
         .sort((a, b) => new Date(a.addedAt) - new Date(b.addedAt))
     })
 
     const getImageUrl = (imagePath) => {
-      // 이미지 경로가 이미 /로 시작하면 그대로 사용
-      if (imagePath.startsWith('/')) {
+      // 1. http 로 시작하는 외부 이미지는 그대로 반환
+      if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
         return imagePath
       }
-      // base path 가져오기 (빌드 시 vite.config.js의 base 설정 사용)
-      let base = import.meta.env.BASE_URL || '/tia-in-da-nang/'
+
+      // 2. Base URL 가져오기
+      // vite.config.js에 설정된 base 값 ('/tia-in-da-nang/')이 자동으로 들어옵니다.
+      // 개발/배포 환경 모두 동일하게 적용됩니다.
+      let base = import.meta.env.BASE_URL
+
+      // 3. 경로 결합을 위해 imagePath 앞의 '/' 제거 (중복 슬래시 방지)
+      const cleanPath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath
       
-      // 카카오톡 웹뷰에서 import.meta.env.BASE_URL이 제대로 동작하지 않을 수 있으므로
-      // 현재 location.pathname을 기반으로 base path 추출
-      if (typeof window !== 'undefined') {
-        const pathname = window.location.pathname
-        if (pathname.startsWith('/tia-in-da-nang')) {
-          base = '/tia-in-da-nang/'
-        }
-      }
-      
-      // base path가 /로 끝나지 않으면 / 추가
-      const basePath = base.endsWith('/') ? base : `${base}/`
-      const fullPath = `${basePath}${imagePath}`
-      
-      // 절대 URL로 변환 (카카오톡 웹뷰 호환성)
+      // 4. 최종 경로 생성
+      // 예: /tia-in-da-nang/ + images/IMG_8277.png
+      const fullPath = `${base}${cleanPath}`
+
+      // 5. (선택사항) 카카오톡 공유 등을 위해 절대 경로가 꼭 필요하다면 아래 로직 유지
+      // 일반적인 <img src> 에서는 fullPath만 리턴해도 충분합니다.
       if (typeof window !== 'undefined' && !fullPath.startsWith('http')) {
-        return new URL(fullPath, window.location.origin).href
+         // 필요한 경우에만 origin을 붙임
+         // return new URL(fullPath, window.location.origin).href
       }
       
       return fullPath
@@ -263,7 +388,7 @@ export default {
 
     return {
       selectedDate,
-      selectedDateFoods,
+      selectedDateRestaurants,
       goToPreviousDate,
       goToNextDate,
       goToToday,
@@ -512,13 +637,33 @@ export default {
   font-style: italic;
 }
 
+.restaurant-list {
+  list-style: none;
+}
+
+.restaurant-item {
+  margin-bottom: 2rem;
+}
+
+.restaurant-item:last-child {
+  margin-bottom: 0;
+}
+
+.restaurant-name {
+  font-size: 1rem;
+  color: #667eea;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+  padding: 0.5rem 0;
+}
+
 .food-list {
   list-style: none;
 }
 
 .food-item {
   padding: 1rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
   background: rgba(255, 255, 255, 0.03);
   border-radius: 8px;
   transition: background 0.2s;
@@ -526,6 +671,10 @@ export default {
 
 .food-item:hover {
   background: rgba(255, 255, 255, 0.08);
+}
+
+.food-item:last-child {
+  margin-bottom: 0;
 }
 
 @media (prefers-color-scheme: light) {
@@ -564,19 +713,36 @@ export default {
   line-height: 1.5;
 }
 
-.food-location {
-  font-size: 0.9rem;
-  color: #667eea;
-  margin: 0.25rem 0 0.5rem 0;
-  font-weight: 500;
+.food-images {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.5rem;
 }
 
 .food-image {
-  max-width: 100%;
-  height: auto;
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   display: block;
+}
+
+@media (max-width: 768px) {
+  .food-images {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .food-image {
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    display: block;
+    object-fit: contain;
+  }
 }
 
 
