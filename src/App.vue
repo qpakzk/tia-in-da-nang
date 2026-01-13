@@ -52,7 +52,6 @@
                         :src="getImageUrl(image)"
                         :alt="`${food.name} ${imageIndex + 1}`"
                         class="food-image"
-                        loading="eager"
                         decoding="async"
                         @error="handleImageError"
                       />
@@ -244,7 +243,100 @@ const restaurantsData = [
         images: ['images/2026-01-12 21.17.37.jpg', 'images/2026-01-12 21.17.46.jpg']
       },
     ]
-  }
+  },
+  {
+    restaurant: 'Merry Land Hotel',
+    date: '2026-01-13',
+    addedAt: '2026-01-13T08:21:00.000Z',
+    foods: [
+      {
+        name: '조식',
+        images: ['images/2026-01-13 08.21.36.jpg', 'images/2026-01-13 08.23.23.jpg']
+      },
+    ]
+  },
+  {
+    restaurant: 'Nice Coffe',
+    date: '2026-01-13',
+    addedAt: '2026-01-13T09:43.0.000Z',
+    foods: [
+      {
+        name: '에스프레소',
+        images: ['images/2026-01-13 09.43.13.jpg']
+      },
+    ]
+  },
+  {
+    restaurant: '목식당',
+    date: '2026-01-13',
+    addedAt: '2026-01-13T11:55.0.000Z',
+    foods: [
+      {
+        name: '모닝글로리',
+        images: ['images/2026-01-13 11.55.54.jpg']
+      },
+      {
+        name: '새우구이',
+        images: ['images/2026-01-13 11.57.24.jpg','images/2026-01-13 12.01.14.jpg']
+      },
+      {
+        name: '크레이피쉬',
+        images: ['images/2026-01-13 12.13.07.jpg', 'images/2026-01-13 12.16.53.jpg']
+      }
+    ]
+  },
+  {
+    restaurant: '못카페',
+    date: '2026-01-13',
+    addedAt: '2026-01-13T15:49.0.000Z',
+    foods: [
+      {
+        name: '허브티',
+        images: ['images/2026-01-13 15.49.36.jpg']
+      },
+    ]
+  },
+  {
+    restaurant: '잡상인 방문 판매',
+    date: '2026-01-13',
+    addedAt: '2026-01-13T16:03.0.000Z',
+    foods: [
+      {
+        name: '땅콩엿',
+        images: ['images/2026-01-13 16.03.18.jpg']
+      },
+    ],
+  },
+  {
+    restaurant: 'Cafe Bi',
+    date: '2026-01-13',
+    addedAt: '2026-01-13T17:03.0.000Z',
+    foods: [
+      {
+        name: '베트남 블랙 커피',
+        images: ['images/2026-01-13 17.03.49.jpg']
+      },
+    ]
+  },
+  {
+    restaurant: 'Nice Coffe',
+    date: '2026-01-13',
+    addedAt: '2026-01-13T20:59.0.000Z',
+    foods: [
+      {
+        name: '코코넛 커피',
+        images: ['images/2026-01-13 20.59.16.jpg']
+      },
+      {
+        name: '샌드위치',
+        images: ['images/2026-01-13 21.08.06.jpg']
+      },
+      {
+        name: '반미',
+        images: ['images/2026-01-13 21.08.10.jpg']
+      }
+    ]
+  },
 ]
 
 export default {
