@@ -36,11 +36,12 @@
         <div v-if="selectedDateRestaurants.length === 0" class="empty-state">
           이 날짜에 아직 음식을 추가하지 않았습니다.
         </div>
-        <ul v-else class="restaurant-list">
-          <li v-for="(restaurant, restaurantIndex) in selectedDateRestaurants" :key="restaurantIndex" class="restaurant-item">
-            <div v-if="restaurant.restaurant" class="restaurant-name">📍 {{ restaurant.restaurant }}</div>
-            <ul class="food-list">
-              <li v-for="(food, foodIndex) in restaurant.foods" :key="foodIndex" class="food-item">
+        <div v-else class="timeline">
+          <div v-for="(restaurant, restaurantIndex) in selectedDateRestaurants" :key="restaurantIndex" class="timeline-item">
+            <div class="timeline-time">{{ formatTime(restaurant.addedAt) }}</div>
+            <div class="timeline-content">
+              <div v-if="restaurant.restaurant" class="restaurant-name">📍 {{ restaurant.restaurant }}</div>
+              <div v-for="(food, foodIndex) in restaurant.foods" :key="foodIndex" class="food-item">
                 <div class="food-content">
                   <div class="food-info">
                     <span class="food-name">{{ food.name }}</span>
@@ -58,10 +59,10 @@
                     </div>
                   </div>
                 </div>
-              </li>
-            </ul>
-          </li>
-        </ul>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
   </div>
@@ -232,6 +233,18 @@ export default {
       }
     }
 
+    // addedAt에서 시간(시:분) 추출 (timezone 무시, 문자열에서 직접 추출)
+    const formatTime = (addedAtString) => {
+      // ISO 형식: "2026-01-11T10:35:00.000Z"
+      // T와 : 사이의 시간 부분만 추출
+      const match = addedAtString.match(/T(\d{2}):(\d{2})/)
+      if (match) {
+        return `${match[1]}:${match[2]}`
+      }
+      // 매칭 실패 시 기본값 반환
+      return '00:00'
+    }
+
     return {
       selectedDate,
       selectedDateRestaurants,
@@ -240,6 +253,7 @@ export default {
       goToToday,
       getTodayDate,
       formatDate,
+      formatTime,
       getImageUrl,
       handleImageError
     }
@@ -483,16 +497,73 @@ export default {
   font-style: italic;
 }
 
-.restaurant-list {
-  list-style: none;
+.timeline {
+  position: relative;
+  padding-left: 5rem;
 }
 
-.restaurant-item {
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 3.5rem;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, #667eea, #764ba2);
+}
+
+@media (prefers-color-scheme: light) {
+  .timeline::before {
+    background: linear-gradient(to bottom, #667eea, #764ba2);
+  }
+}
+
+.timeline-item {
+  position: relative;
   margin-bottom: 2rem;
+  display: flex;
+  gap: 1.5rem;
 }
 
-.restaurant-item:last-child {
+.timeline-item:last-child {
   margin-bottom: 0;
+}
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -1.5rem;
+  top: 0.25rem;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #667eea;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  z-index: 1;
+}
+
+@media (prefers-color-scheme: light) {
+  .timeline-item::before {
+    border-color: rgba(255, 255, 255, 0.9);
+  }
+}
+
+.timeline-time {
+  position: absolute;
+  left: -5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #667eea;
+  white-space: nowrap;
+  width: 4rem;
+  text-align: right;
+  padding-right: 1rem;
+  top: 0.1rem;
+}
+
+.timeline-content {
+  flex: 1;
+  min-width: 0;
 }
 
 .restaurant-name {
@@ -501,10 +572,6 @@ export default {
   margin-bottom: 0.75rem;
   font-weight: 600;
   padding: 0.5rem 0;
-}
-
-.food-list {
-  list-style: none;
 }
 
 .food-item {
@@ -530,6 +597,33 @@ export default {
   
   .food-item:hover {
     background: rgba(0, 0, 0, 0.05);
+  }
+}
+
+@media (max-width: 768px) {
+  .timeline {
+    padding-left: 4rem;
+  }
+
+  .timeline::before {
+    left: 2.5rem;
+  }
+
+  .timeline-item::before {
+    left: -1.5rem;
+    width: 10px;
+    height: 10px;
+  }
+
+  .timeline-time {
+    left: -4rem;
+    font-size: 0.75rem;
+    width: 3.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .timeline-content {
+    padding-left: 0.5rem;
   }
 }
 
