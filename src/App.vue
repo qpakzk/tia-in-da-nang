@@ -34,7 +34,15 @@
       <div v-if="restaurantsWithLocation.length > 0" class="map-section">
         <h2>📍 방문한 식당 위치</h2>
         <div class="map-container">
-          <LMap :zoom="zoom" :center="mapCenter" :options="{ zoomControl: true }" style="height: 100%; width: 100%;">
+          <LMap
+            ref="map"
+            v-model:zoom="zoom"
+            :center="mapCenter" 
+            :use-global-leaflet="false"
+            :options="{ zoomControl: true }"
+            style="height: 100%; width: 100%;"
+            @ready="onMapReady"
+          >
             <LTileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               layer-type="base"
@@ -93,7 +101,6 @@
 <script>
 import { ref, computed, watch, onMounted } from 'vue'
 import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
-import 'leaflet/dist/leaflet.css'
 import restaurantsData from './data/restaurants.json'
 
 // 데이터 구조:
@@ -302,6 +309,10 @@ export default {
       return '00:00'
     }
 
+    const onMapReady = (mapObject) => {
+      mapObject.invalidateSize()
+    }
+
     return {
       selectedDate,
       selectedDateRestaurants,
@@ -315,7 +326,8 @@ export default {
       formatDate,
       formatTime,
       getImageUrl,
-      handleImageError
+      handleImageError,
+      onMapReady
     }
   }
 }
