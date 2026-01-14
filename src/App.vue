@@ -31,6 +31,28 @@
         </div>
       </div>
 
+      <div v-if="restaurantsWithLocation.length > 0" class="map-section">
+        <h2>📍 방문한 식당 위치</h2>
+        <div class="map-container">
+          <LMap :zoom="zoom" :center="mapCenter" :options="{ zoomControl: true }" style="height: 100%; width: 100%;">
+            <LTileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              layer-type="base"
+              name="OpenStreetMap"
+            />
+            <LMarker
+              v-for="(restaurant, index) in restaurantsWithLocation"
+              :key="index"
+              :lat-lng="[restaurant.location.lat, restaurant.location.lng]"
+            >
+              <LPopup>
+                <div>{{ restaurant.restaurant || '식당' }}</div>
+              </LPopup>
+            </LMarker>
+          </LMap>
+        </div>
+      </div>
+
       <div class="food-list-section">
         <h2>{{ formatDate(selectedDate) }} 먹은 음식</h2>
         <div v-if="selectedDateRestaurants.length === 0" class="empty-state">
@@ -70,6 +92,8 @@
 
 <script>
 import { ref, computed, watch, onMounted } from 'vue'
+import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
+import 'leaflet/dist/leaflet.css'
 import restaurantsData from './data/restaurants.json'
 
 // 데이터 구조:
@@ -94,6 +118,12 @@ import restaurantsData from './data/restaurants.json'
 
 export default {
   name: 'App',
+  components: {
+    LMap,
+    LTileLayer,
+    LMarker,
+    LPopup
+  },
   setup() {
     // 로컬 시간대의 오늘 날짜를 YYYY-MM-DD 형식으로 반환
     const getTodayDate = () => {
@@ -135,6 +165,33 @@ export default {
       }
       // addedAt 기준으로 정렬
       return dateEntry.restaurants.sort((a, b) => new Date(a.addedAt) - new Date(b.addedAt))
+    })
+
+    // location 필드가 유효한 식당만 필터링
+    const restaurantsWithLocation = computed(() => {
+      return selectedDateRestaurants.value.filter(restaurant => {
+        if (!restaurant.location) return false
+        const { lat, lng } = restaurant.location
+        return typeof lat === 'number' && typeof lng === 'number' && 
+               !isNaN(lat) && !isNaN(lng) &&
+               lat >= -90 && lat <= 90 && 
+               lng >= -180 && lng <= 180
+      })
+    })
+
+    // 지도 설정
+    const zoom = ref(13)
+    const mapCenter = computed(() => {
+      if (restaurantsWithLocation.value.length > 0) {
+        // 식당들의 중심점 계산
+        const lats = restaurantsWithLocation.value.map(r => r.location.lat)
+        const lngs = restaurantsWithLocation.value.map(r => r.location.lng)
+        const avgLat = lats.reduce((a, b) => a + b, 0) / lats.length
+        const avgLng = lngs.reduce((a, b) => a + b, 0) / lngs.length
+        return [avgLat, avgLng]
+      }
+      // 기본값: 다낭 중심
+      return [16.0470, 108.2068]
     })
 
     const getImageUrl = (imagePath) => {
@@ -248,6 +305,9 @@ export default {
     return {
       selectedDate,
       selectedDateRestaurants,
+      restaurantsWithLocation,
+      zoom,
+      mapCenter,
       goToPreviousDate,
       goToNextDate,
       goToToday,
@@ -465,6 +525,47 @@ export default {
   .btn-today {
     font-size: 0.7rem;
     padding: 0.2rem 0.6rem;
+  }
+}
+
+.map-section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+
+@media (prefers-color-scheme: light) {
+  .map-section {
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+}
+
+.map-section h2 {
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  color: #667eea;
+}
+
+.map-container {
+  width: 100%;
+  height: 400px;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  z-index: 0;
+}
+
+.map-container :deep(.leaflet-container) {
+  height: 100% !important;
+  width: 100% !important;
+}
+
+@media (max-width: 768px) {
+  .map-container {
+    height: 300px;
   }
 }
 
