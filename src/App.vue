@@ -729,7 +729,7 @@ export default {
   }
 
   .timeline-time {
-    left: -4rem;
+    left: -5rem;
     font-size: 0.75rem;
     width: 3.5rem;
     padding-right: 0.5rem;
