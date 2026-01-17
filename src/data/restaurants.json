@@ -143,7 +143,7 @@
             "images": ["images/2026-01-12 12.47.19.webp"]
           },
           {
-            "name": "모닝글로리",
+            "name": "모닝글로리 볶음",
             "images": ["images/2026-01-12 12.45.16.webp"]
           }
         ]
@@ -181,10 +181,10 @@
         ]
       },
       {
-        "restaurant": "롯데마트",
+        "restaurant": "Merry Land Hotel",
         "location": {
-          "lat": 16.03481833851347,
-          "lng": 108.22898849062918
+          "lat": 16.070161057190006,
+          "lng": 108.23710932143868
         },
         "addedAt": "2026-01-12T20:20:00.000Z",
         "foods": [
@@ -258,7 +258,7 @@
         "addedAt": "2026-01-13T11:55:00.000Z",
         "foods": [
           {
-            "name": "모닝글로리",
+            "name": "모닝글로리 볶음",
             "images": ["images/2026-01-13 11.55.54.webp"]
           },
           {
@@ -515,6 +515,80 @@
             "images": ["images/2026-01-15 11.15.19.webp"]
           }
         ]
+      },
+      {
+        "restaurant": "LoCo Restaurant",
+        "location": {
+          "lat": 16.07151005309735,
+          "lng": 108.22416460104574
+        },
+        "addedAt": "2026-01-15T13:44:00.000Z",
+        "foods": [
+          {
+            "name": "마늘 모닝글로리 볶음",
+            "images": ["images/2026-01-15 13.44.30.webp"]
+          },
+          {
+            "name": "새우 구이",
+            "images": ["images/2026-01-15 13.45.32.webp"]
+          },
+          {
+            "name": "반호이",
+            "images": ["images/2026-01-15 13.48.15.webp"]
+          },
+          {
+            "name": "해물 볶음면",
+            "images": ["images/2026-01-15 13.58.55.webp"]
+          }
+        ]
+      },
+      {
+        "restaurant": "Ut Tich Cafe",
+        "location": {
+          "lat": 16.069061596198416,
+          "lng": 108.22486977329328
+        },
+        "addedAt": "2026-01-15T14:59:00.000Z",
+        "foods": [
+          {
+            "name": "솔트커피",
+            "images": ["images/2026-01-15 15.12.14.webp","images/2026-01-15 15.12.16.webp"]
+          }
+        ]
+      },
+      {
+        "restaurant": "Merry Land Hotel",
+        "location": {
+          "lat": 16.070161057190006,
+          "lng": 108.23710932143868
+        },
+        "addedAt": "2026-01-15T20:30:00.000Z",
+        "foods": [
+          {
+            "name": "잭프루트"
+          },
+          {
+            "name": "건망고"
+          }
+        ]
+      },
+      {
+        "restaurant": "Nice Coffe",
+        "location": {
+          "lat": 16.070136979231258,
+          "lng": 108.23721434651088
+        },
+        "addedAt": "2026-01-15T20:54:00.000Z",
+        "foods": [
+          {
+            "name": "아이스 아메리카노",
+            "images": ["images/2026-01-15 20.54.05.webp"]
+          },
+          {
+            "name": "샌드위치",
+            "images": ["images/2026-01-15 21.01.33.webp","images/2026-01-15 21.01.36.webp"]
+          }
+        ]
       }
     ]
   },
@@ -574,7 +648,7 @@
             "images": ["images/2026-01-16 14.19.14.webp"]
           },
           {
-            "name": "마늘 모닝글로리",
+            "name": "마늘 모닝글로리 볶음",
             "images": ["images/2026-01-16 14.21.47.webp"]
           },
           {
