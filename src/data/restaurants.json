@@ -690,5 +690,38 @@
         ]
       }
     ]
+  },
+  {
+    "date": "2026-01-17",
+    "restaurants": [
+      {
+        "restaurant": "Merry Land Hotel",
+        "location": {
+          "lat": 16.070161057190006,
+          "lng": 108.23710932143868
+        },
+        "addedAt": "2026-01-17T08:07:00.000Z",
+        "foods": [
+          {
+            "name": "조식",
+            "images": ["images/2026-01-17 08.07.21.webp", "images/2026-01-17 08.21.00.webp"]
+          }
+        ]
+      },
+      {
+        "restaurant": "Nice Coffe",
+        "location": {
+          "lat": 16.070136979231258,
+          "lng": 108.23721434651088
+        },
+        "addedAt": "2026-01-17T08:21:00.000Z",
+        "foods": [
+          {
+            "name": "코코넛 커피",
+            "images": ["images/2026-01-17 09.57.36.webp"]
+          }
+        ]
+      }
+    ]
   }
 ]
