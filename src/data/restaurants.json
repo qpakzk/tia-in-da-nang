@@ -517,5 +517,104 @@
         ]
       }
     ]
+  },
+  {
+    "date": "2026-01-16",
+    "restaurants": [
+      {
+        "restaurant": "Merry Land Hotel",
+        "location": {
+          "lat": 16.070161057190006,
+          "lng": 108.23710932143868
+        },
+        "addedAt": "2026-01-16T06:30:00.000Z",
+        "foods": [
+          {
+            "name": "조식",
+            "images": ["images/2026-01-16 06.30.43.webp"]
+          }
+        ]
+      },
+      {
+        "restaurant": "스타벅스 바나힐 보르도역점",
+        "location": {
+          "lat": 16.026525600705035,
+          "lng": 108.03279954782376
+        },
+        "addedAt": "2026-01-16T08:47:00.000Z",
+        "foods": [
+          {
+            "name": "코코넛 커피",
+            "images": ["images/2026-01-16 08.47.55.webp", "images/2026-01-16 08.48.49.webp", "images/2026-01-16 08.48.55.webp"]
+          }
+        ]
+      },
+      {
+        "restaurant": "안토이",
+        "location": {
+          "lat": 16.068265575337893,
+          "lng": 108.22480046030647
+        },
+        "addedAt": "2026-01-16T14:15:00.000Z",
+        "foods": [
+          {
+            "name": "소고기 쌀국수",
+            "images": ["images/2026-01-16 14.15.11.webp"]
+          },
+          {
+            "name": "반쎄오",
+            "images": ["images/2026-01-16 14.15.15.webp","images/2026-01-16 14.22.54.webp"]
+          },
+          {
+            "name": "짜조",
+            "images": ["images/2026-01-16 14.17.52.webp"]
+          },
+          {
+            "name": "땅콩소스속 가리비",
+            "images": ["images/2026-01-16 14.19.14.webp"]
+          },
+          {
+            "name": "마늘 모닝글로리",
+            "images": ["images/2026-01-16 14.21.47.webp"]
+          },
+          {
+            "name": "파인애플 주스",
+            "images": ["images/2026-01-16 14.23.13.webp"]
+          }
+        ]
+      },
+      {
+        "restaurant": "Phuc Long 롯데마트점",
+        "location": {
+          "lat": 16.03444573510181,
+          "lng": 108.22908689467545
+        },
+        "addedAt": "2026-01-16T16:22:00.000Z",
+        "foods": [
+          {
+            "name": "Phuc Long 롯데마트점",
+            "images": ["images/2026-01-16 16.22.25.webp","images/2026-01-16 16.22.35.webp"]
+          }
+        ]
+      },
+      {
+        "restaurant": "Nice Coffe",
+        "location": {
+          "lat": 16.070136979231258,
+          "lng": 108.23721434651088
+        },
+        "addedAt": "2026-01-16T20:54:00.000Z",
+        "foods": [
+          {
+            "name": "아이스 아메리카노",
+            "images": ["images/2026-01-16 20.54.19.webp"]
+          },
+          {
+            "name": "샌드위치",
+            "images": ["images/2026-01-16 21.03.43.webp","images/2026-01-16 21.03.46.webp"]
+          }
+        ]
+      }
+    ]
   }
 ]
