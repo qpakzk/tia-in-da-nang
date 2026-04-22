@@ -6,6 +6,82 @@
     </header>
 
     <main class="main-content">
+      <section class="search-section">
+        <div class="search-section-header">
+          <div>
+            <h2>🔎 음식/식당 검색</h2>
+            <p class="search-section-description">날짜를 몰라도 음식 이름, 식당 이름, 설명으로 바로 찾을 수 있습니다.</p>
+          </div>
+          <span v-if="hasSearchQuery" class="search-count">{{ searchResults.length }}건</span>
+        </div>
+
+        <div class="search-controls">
+          <input
+            v-model="searchQuery"
+            type="search"
+            class="search-input"
+            placeholder="예: 코코넛 커피, 조식, 스타벅스"
+          />
+          <button
+            v-if="hasSearchQuery"
+            type="button"
+            class="btn-clear-search"
+            @click="clearSearch"
+          >
+            지우기
+          </button>
+        </div>
+
+        <div v-if="hasSearchQuery" class="search-results">
+          <div v-if="searchResults.length === 0" class="empty-state search-empty-state">
+            검색 결과가 없습니다.
+          </div>
+          <button
+            v-for="result in searchResults"
+            :key="result.key"
+            type="button"
+            class="search-result-card"
+            :class="{ 'search-result-card-active': selectedSearchKey === result.key }"
+            @click="goToSearchResult(result)"
+          >
+            <img
+              v-if="result.thumbnail"
+              :src="getImageUrl(result.thumbnail)"
+              :alt="result.foodName"
+              class="search-result-image"
+              decoding="async"
+              @error="handleImageError"
+            />
+            <div class="search-result-body">
+              <div class="search-result-heading">
+                <div>
+                  <div class="search-result-title">{{ result.foodName }}</div>
+                  <div class="search-result-restaurant">{{ result.restaurantName }}</div>
+                </div>
+                <div class="search-result-date">
+                  <span>{{ formatDate(result.date) }}</span>
+                  <span>{{ formatTime(result.addedAt) }}</span>
+                </div>
+              </div>
+
+              <p v-if="result.description" class="search-result-description">
+                {{ result.description }}
+              </p>
+
+              <div class="search-result-tags">
+                <span
+                  v-for="label in result.matchLabels"
+                  :key="`${result.key}-${label}`"
+                  class="search-match-badge"
+                >
+                  {{ label }} 매치
+                </span>
+              </div>
+            </div>
+          </button>
+        </div>
+      </section>
+
       <div class="date-navigation-section">
         <div class="date-navigation">
           <button @click="goToPreviousDate" class="btn-nav" title="이전 날짜">◀</button>
@@ -63,6 +139,12 @@
 
       <div class="food-list-section">
         <h2>{{ formatDate(selectedDate) }} 먹은 음식</h2>
+        <p
+          v-if="selectedSearchResult && selectedSearchResult.date === selectedDate"
+          class="search-selection-note"
+        >
+          검색으로 찾은 <strong>{{ selectedSearchResult.foodName }}</strong> 항목이 아래에서 강조됩니다.
+        </p>
         <div v-if="selectedDateRestaurants.length === 0" class="empty-state">
           이 날짜에 아직 음식을 추가하지 않았습니다.
         </div>
@@ -71,7 +153,13 @@
             <div class="timeline-time">{{ formatTime(restaurant.addedAt) }}</div>
             <div class="timeline-content">
               <div v-if="restaurant.restaurant" class="restaurant-name">📍 {{ restaurant.restaurant }}</div>
-              <div v-for="(food, foodIndex) in restaurant.foods" :key="foodIndex" class="food-item">
+              <div
+                v-for="(food, foodIndex) in restaurant.foods"
+                :key="foodIndex"
+                class="food-item"
+                :class="{ 'food-item-highlighted': selectedSearchKey === buildFoodKey(selectedDate, restaurantIndex, foodIndex) }"
+                :data-food-key="buildFoodKey(selectedDate, restaurantIndex, foodIndex)"
+              >
                 <div class="food-content">
                   <div class="food-info">
                     <span class="food-name">{{ food.name }}</span>
@@ -99,7 +187,7 @@
 </template>
 
 <script>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
 import restaurantsData from './data/restaurants.json'
 
@@ -132,6 +220,18 @@ export default {
     LPopup
   },
   setup() {
+    const sortRestaurantsByAddedAt = (restaurants = []) => {
+      return [...restaurants].sort((a, b) => new Date(a.addedAt) - new Date(b.addedAt))
+    }
+
+    const normalizeText = (value) => {
+      return String(value || '').trim().toLocaleLowerCase('ko-KR')
+    }
+
+    const buildFoodKey = (date, restaurantIndex, foodIndex) => {
+      return `${date}__${restaurantIndex}__${foodIndex}`
+    }
+
     // 로컬 시간대의 오늘 날짜를 YYYY-MM-DD 형식으로 반환
     const getTodayDate = () => {
       const now = new Date()
@@ -156,6 +256,8 @@ export default {
     }
     
     const selectedDate = ref(getDateFromUrl())
+    const searchQuery = ref('')
+    const selectedSearchKey = ref(null)
     
     // URL 업데이트
     const updateUrl = (date) => {
@@ -170,8 +272,75 @@ export default {
       if (!dateEntry) {
         return []
       }
-      // addedAt 기준으로 정렬
-      return dateEntry.restaurants.sort((a, b) => new Date(a.addedAt) - new Date(b.addedAt))
+      return sortRestaurantsByAddedAt(dateEntry.restaurants)
+    })
+
+    const searchableEntries = computed(() => {
+      return restaurantsData.flatMap((dateEntry) => {
+        return sortRestaurantsByAddedAt(dateEntry.restaurants).flatMap((restaurant, restaurantIndex) => {
+          return (restaurant.foods || []).map((food, foodIndex) => ({
+            key: buildFoodKey(dateEntry.date, restaurantIndex, foodIndex),
+            date: dateEntry.date,
+            addedAt: restaurant.addedAt,
+            restaurantName: restaurant.restaurant || '식당 이름 없음',
+            foodName: food.name || '이름 없는 음식',
+            description: food.description || '',
+            thumbnail: food.images?.[0] || null
+          }))
+        })
+      })
+    })
+
+    const hasSearchQuery = computed(() => normalizeText(searchQuery.value).length > 0)
+
+    const searchResults = computed(() => {
+      const query = normalizeText(searchQuery.value)
+
+      if (!query) {
+        return []
+      }
+
+      return searchableEntries.value
+        .map((entry) => {
+          const matchLabels = []
+          let score = 0
+
+          if (normalizeText(entry.foodName).includes(query)) {
+            matchLabels.push('메뉴')
+            score += 3
+          }
+
+          if (normalizeText(entry.restaurantName).includes(query)) {
+            matchLabels.push('식당')
+            score += 2
+          }
+
+          if (normalizeText(entry.description).includes(query)) {
+            matchLabels.push('설명')
+            score += 1
+          }
+
+          if (score === 0) {
+            return null
+          }
+
+          return {
+            ...entry,
+            matchLabels,
+            score
+          }
+        })
+        .filter(Boolean)
+        .sort((a, b) => {
+          if (b.score !== a.score) {
+            return b.score - a.score
+          }
+          return new Date(a.addedAt) - new Date(b.addedAt)
+        })
+    })
+
+    const selectedSearchResult = computed(() => {
+      return searchableEntries.value.find((entry) => entry.key === selectedSearchKey.value) || null
     })
 
     // location 필드가 유효한 식당만 필터링
@@ -257,11 +426,45 @@ export default {
     const goToToday = () => {
       selectedDate.value = getTodayDate()
     }
+
+    const clearSearch = () => {
+      searchQuery.value = ''
+      selectedSearchKey.value = null
+    }
+
+    const scrollToSearchMatch = () => {
+      if (!selectedSearchKey.value) {
+        return
+      }
+
+      const target = document.querySelector(`[data-food-key="${selectedSearchKey.value}"]`)
+
+      if (target) {
+        target.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        })
+      }
+    }
+
+    const goToSearchResult = async (result) => {
+      selectedSearchKey.value = result.key
+      selectedDate.value = result.date
+
+      await nextTick()
+      requestAnimationFrame(scrollToSearchMatch)
+    }
     
     // 날짜 변경 감지하여 URL 업데이트
     watch(selectedDate, (newDate) => {
       updateUrl(newDate)
     }, { immediate: true })
+
+    watch(searchQuery, (newQuery) => {
+      if (!normalizeText(newQuery)) {
+        selectedSearchKey.value = null
+      }
+    })
     
     // 브라우저 뒤로가기/앞으로가기 처리
     onMounted(() => {
@@ -315,6 +518,11 @@ export default {
 
     return {
       selectedDate,
+      searchQuery,
+      hasSearchQuery,
+      searchResults,
+      selectedSearchKey,
+      selectedSearchResult,
       selectedDateRestaurants,
       restaurantsWithLocation,
       zoom,
@@ -322,9 +530,12 @@ export default {
       goToPreviousDate,
       goToNextDate,
       goToToday,
+      goToSearchResult,
+      clearSearch,
       getTodayDate,
       formatDate,
       formatTime,
+      buildFoodKey,
       getImageUrl,
       handleImageError,
       onMapReady
@@ -372,6 +583,243 @@ export default {
 
 .date-navigation-section {
   margin-bottom: 2rem;
+}
+
+.search-section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+
+@media (prefers-color-scheme: light) {
+  .search-section {
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+}
+
+.search-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.search-section h2 {
+  font-size: 1.5rem;
+  color: #667eea;
+  margin-bottom: 0.35rem;
+}
+
+.search-section-description {
+  color: #888;
+  font-size: 0.95rem;
+}
+
+.search-count {
+  flex-shrink: 0;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(102, 126, 234, 0.14);
+  color: #667eea;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.search-controls {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  font-size: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.14);
+}
+
+.btn-clear-search {
+  flex-shrink: 0;
+  border: 1px solid rgba(102, 126, 234, 0.35);
+  border-radius: 10px;
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  padding: 0.85rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-clear-search:hover {
+  background: rgba(102, 126, 234, 0.18);
+}
+
+.search-results {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
+.search-empty-state {
+  padding: 1.5rem;
+}
+
+.search-result-card {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 1rem;
+  width: 100%;
+  padding: 1rem;
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.2s, border-color 0.2s, background 0.2s, box-shadow 0.2s;
+}
+
+.search-result-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(102, 126, 234, 0.45);
+  background: rgba(102, 126, 234, 0.08);
+}
+
+.search-result-card-active {
+  border-color: #667eea;
+  background: rgba(102, 126, 234, 0.12);
+  box-shadow: 0 10px 24px rgba(102, 126, 234, 0.14);
+}
+
+.search-result-image {
+  width: 112px;
+  height: 112px;
+  border-radius: 12px;
+  object-fit: cover;
+  display: block;
+}
+
+.search-result-body {
+  min-width: 0;
+}
+
+.search-result-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.search-result-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: inherit;
+}
+
+.search-result-restaurant {
+  margin-top: 0.2rem;
+  color: #667eea;
+  font-weight: 600;
+}
+
+.search-result-date {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  gap: 0.2rem;
+  color: #888;
+  font-size: 0.85rem;
+}
+
+.search-result-description {
+  color: #888;
+  margin-bottom: 0.65rem;
+  line-height: 1.5;
+}
+
+.search-result-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.search-match-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(102, 126, 234, 0.14);
+  color: #667eea;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+@media (prefers-color-scheme: light) {
+  .search-input {
+    border-color: rgba(0, 0, 0, 0.12);
+    background: rgba(255, 255, 255, 0.8);
+  }
+
+  .search-result-card {
+    border-color: rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.72);
+  }
+
+  .search-result-card:hover {
+    background: rgba(102, 126, 234, 0.08);
+  }
+}
+
+@media (max-width: 768px) {
+  .search-section {
+    padding: 1rem;
+  }
+
+  .search-section-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-count {
+    align-self: flex-start;
+  }
+
+  .search-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-result-card {
+    grid-template-columns: 1fr;
+  }
+
+  .search-result-image {
+    width: 100%;
+    height: 180px;
+  }
+
+  .search-result-heading {
+    flex-direction: column;
+  }
+
+  .search-result-date {
+    align-items: flex-start;
+  }
 }
 
 .date-navigation {
@@ -692,11 +1140,18 @@ export default {
   margin-bottom: 0.75rem;
   background: rgba(255, 255, 255, 0.03);
   border-radius: 8px;
-  transition: background 0.2s;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+  border: 1px solid transparent;
 }
 
 .food-item:hover {
   background: rgba(255, 255, 255, 0.08);
+}
+
+.food-item-highlighted {
+  border-color: rgba(102, 126, 234, 0.6);
+  background: rgba(102, 126, 234, 0.12);
+  box-shadow: 0 12px 30px rgba(102, 126, 234, 0.14);
 }
 
 .food-item:last-child {
@@ -757,6 +1212,12 @@ export default {
   font-size: 1.1rem;
   font-weight: 600;
   color: inherit;
+}
+
+.search-selection-note {
+  margin-bottom: 1rem;
+  color: #667eea;
+  font-size: 0.95rem;
 }
 
 .food-description {
