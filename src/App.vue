@@ -17,9 +17,9 @@
             />
             <div class="date-label-wrapper">
               <span class="date-label">{{ formatDate(selectedDate) }}</span>
-              <button 
-                v-if="selectedDate !== getTodayDate()" 
-                @click="goToToday" 
+              <button
+                v-if="selectedDate !== getTodayDate()"
+                @click="goToToday"
                 class="btn-today"
                 title="오늘로 이동"
               >
@@ -31,13 +31,106 @@
         </div>
       </div>
 
+      <section class="tag-search-section">
+        <div class="section-heading">
+          <h2># 태그 검색</h2>
+          <p>태그를 고르면 당일 기록과 전체 여행 기록을 같이 좁혀서 볼 수 있다.</p>
+        </div>
+
+        <div class="tag-toolbar">
+          <input
+            v-model.trim="tagQuery"
+            type="search"
+            class="tag-search-input"
+            placeholder="태그 검색 예: 커피, 해산물, 과일"
+          />
+          <button
+            v-if="selectedTags.length > 0 || tagQuery"
+            @click="clearTagSearch"
+            class="btn-clear"
+            type="button"
+          >
+            초기화
+          </button>
+        </div>
+
+        <p v-if="!tagQuery" class="search-hint">
+          태그 이름을 입력하면 관련 태그가 나타난다.
+        </p>
+
+        <div v-if="selectedTags.length > 0" class="selected-tags">
+          <button
+            v-for="tag in selectedTags"
+            :key="`selected-${tag}`"
+            class="tag-chip active"
+            type="button"
+            @click="toggleTag(tag)"
+          >
+            #{{ tag }} <span class="tag-chip-action">x</span>
+          </button>
+        </div>
+
+        <div v-if="tagQuery && filteredTagOptions.length > 0" class="tag-chip-list">
+          <button
+            v-for="tag in filteredTagOptions"
+            :key="tag.name"
+            class="tag-chip"
+            type="button"
+            @click="toggleTag(tag.name)"
+          >
+            <span>#{{ tag.name }}</span>
+          </button>
+        </div>
+
+        <div v-else-if="tagQuery" class="empty-state compact">
+          검색어에 맞는 태그가 없습니다.
+        </div>
+      </section>
+
+      <section v-if="hasActiveTagFilters" class="search-results-section">
+        <div class="section-heading">
+          <h2>{{ activeTagTitle }} 전체 기록</h2>
+          <p>{{ tagSearchResults.length }}개의 음식이 선택한 태그를 포함한다. 카드를 누르면 그 날짜로 이동한다.</p>
+        </div>
+
+        <div v-if="tagSearchResults.length === 0" class="empty-state compact">
+          선택한 태그에 맞는 기록이 없습니다.
+        </div>
+
+        <div v-else class="search-results-grid">
+          <button
+            v-for="result in tagSearchResults"
+            :key="`${result.date}-${result.restaurant || '식당'}-${result.name}-${result.addedAt}`"
+            class="search-result-card"
+            type="button"
+            @click="jumpToDate(result.date)"
+          >
+            <div class="search-result-meta">
+              <span>{{ formatDate(result.date) }}</span>
+              <span>{{ formatTime(result.addedAt) }}</span>
+            </div>
+            <strong class="search-result-name">{{ result.name }}</strong>
+            <p class="search-result-restaurant">{{ result.restaurant || '식당 정보 없음' }}</p>
+            <div class="inline-tags">
+              <span
+                v-for="tag in result.tags"
+                :key="`${result.name}-${tag}`"
+                class="inline-tag"
+              >
+                #{{ tag }}
+              </span>
+            </div>
+          </button>
+        </div>
+      </section>
+
       <div v-if="restaurantsWithLocation.length > 0" class="map-section">
         <h2>📍 방문한 식당 위치</h2>
         <div class="map-container">
           <LMap
             ref="map"
             v-model:zoom="zoom"
-            :center="mapCenter" 
+            :center="mapCenter"
             :use-global-leaflet="false"
             :options="{ zoomControl: true }"
             style="height: 100%; width: 100%;"
@@ -62,12 +155,30 @@
       </div>
 
       <div class="food-list-section">
-        <h2>{{ formatDate(selectedDate) }} 먹은 음식</h2>
+        <div class="section-heading">
+          <h2>{{ formatDate(selectedDate) }} 먹은 음식</h2>
+          <p v-if="hasActiveTagFilters">
+            {{ activeTagTitle }} 태그가 붙은 음식만 {{ selectedDateFoodCount }}개 보여준다.
+          </p>
+        </div>
+
         <div v-if="selectedDateRestaurants.length === 0" class="empty-state">
           이 날짜에 아직 음식을 추가하지 않았습니다.
         </div>
+
+        <div
+          v-else-if="hasActiveTagFilters && filteredSelectedDateRestaurants.length === 0"
+          class="empty-state"
+        >
+          이 날짜에는 선택한 태그에 맞는 음식이 없습니다.
+        </div>
+
         <div v-else class="timeline">
-          <div v-for="(restaurant, restaurantIndex) in selectedDateRestaurants" :key="restaurantIndex" class="timeline-item">
+          <div
+            v-for="(restaurant, restaurantIndex) in filteredSelectedDateRestaurants"
+            :key="restaurantIndex"
+            class="timeline-item"
+          >
             <div class="timeline-time">{{ formatTime(restaurant.addedAt) }}</div>
             <div class="timeline-content">
               <div v-if="restaurant.restaurant" class="restaurant-name">📍 {{ restaurant.restaurant }}</div>
@@ -76,6 +187,18 @@
                   <div class="food-info">
                     <span class="food-name">{{ food.name }}</span>
                     <p v-if="food.description" class="food-description">{{ food.description }}</p>
+                    <div v-if="food.tags && food.tags.length > 0" class="inline-tags">
+                      <button
+                        v-for="tag in food.tags"
+                        :key="`${food.name}-${tag}`"
+                        class="inline-tag button-tag"
+                        :class="{ active: selectedTags.includes(tag) }"
+                        type="button"
+                        @click="toggleTag(tag)"
+                      >
+                        #{{ tag }}
+                      </button>
+                    </div>
                     <div v-if="food.images && food.images.length > 0" class="food-images">
                       <img
                         v-for="(image, imageIndex) in food.images"
@@ -99,29 +222,9 @@
 </template>
 
 <script>
-import { ref, computed, watch, onMounted } from 'vue'
-import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { LMap, LMarker, LPopup, LTileLayer } from '@vue-leaflet/vue-leaflet'
 import restaurantsData from './data/restaurants.json'
-
-// 데이터 구조:
-// [
-//   {
-//     date: '2024-01-01',  // YYYY-MM-DD 형식
-//     restaurants: [
-//       {
-//         restaurant: '식당 이름',  // 선택사항 (null이면 식당 없음)
-//         addedAt: '2024-01-01T00:00:00.000Z',  // ISO 형식
-//         foods: [
-//           {
-//             name: '음식 이름',
-//             description: '음식 설명',  // 선택사항
-//             images: ['images/파일명1.jpg', 'images/파일명2.jpg']  // 이미지 배열
-//           }
-//         ]
-//       }
-//     ]
-//   }
-// ]
 
 export default {
   name: 'App',
@@ -132,7 +235,6 @@ export default {
     LPopup
   },
   setup() {
-    // 로컬 시간대의 오늘 날짜를 YYYY-MM-DD 형식으로 반환
     const getTodayDate = () => {
       const now = new Date()
       const year = now.getFullYear()
@@ -140,104 +242,199 @@ export default {
       const day = String(now.getDate()).padStart(2, '0')
       return `${year}-${month}-${day}`
     }
-    
-    // URL에서 날짜 읽기
+
     const getDateFromUrl = () => {
       const params = new URLSearchParams(window.location.search)
       const dateParam = params.get('date')
+
       if (dateParam) {
-        // 날짜 형식 검증 (YYYY-MM-DD)
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/
         if (dateRegex.test(dateParam)) {
           return dateParam
         }
       }
+
       return getTodayDate()
     }
-    
+
     const selectedDate = ref(getDateFromUrl())
-    
-    // URL 업데이트
+    const tagQuery = ref('')
+    const selectedTags = ref([])
+    const zoom = ref(13)
+
     const updateUrl = (date) => {
       const url = new URL(window.location)
       url.searchParams.set('date', date)
       window.history.pushState({ date }, '', url)
     }
 
-    // 선택된 날짜의 레스토랑 목록을 반환
+    const sortRestaurantsByTime = (restaurants) => {
+      return [...restaurants].sort((a, b) => new Date(a.addedAt) - new Date(b.addedAt))
+    }
+
     const selectedDateRestaurants = computed(() => {
-      const dateEntry = restaurantsData.find(entry => entry.date === selectedDate.value)
+      const dateEntry = restaurantsData.find((entry) => entry.date === selectedDate.value)
       if (!dateEntry) {
         return []
       }
-      // addedAt 기준으로 정렬
-      return dateEntry.restaurants.sort((a, b) => new Date(a.addedAt) - new Date(b.addedAt))
+
+      return sortRestaurantsByTime(dateEntry.restaurants)
     })
 
-    // location 필드가 유효한 식당만 필터링
+    const hasActiveTagFilters = computed(() => selectedTags.value.length > 0)
+
+    const matchesSelectedTags = (food) => {
+      if (!hasActiveTagFilters.value) {
+        return true
+      }
+
+      const tags = Array.isArray(food.tags) ? food.tags : []
+      return selectedTags.value.every((tag) => tags.includes(tag))
+    }
+
+    const filteredSelectedDateRestaurants = computed(() => {
+      if (!hasActiveTagFilters.value) {
+        return selectedDateRestaurants.value
+      }
+
+      return selectedDateRestaurants.value
+        .map((restaurant) => ({
+          ...restaurant,
+          foods: restaurant.foods.filter(matchesSelectedTags)
+        }))
+        .filter((restaurant) => restaurant.foods.length > 0)
+    })
+
+    const selectedDateFoodCount = computed(() => {
+      return filteredSelectedDateRestaurants.value.reduce((count, restaurant) => {
+        return count + restaurant.foods.length
+      }, 0)
+    })
+
     const restaurantsWithLocation = computed(() => {
-      return selectedDateRestaurants.value.filter(restaurant => {
-        if (!restaurant.location) return false
+      return filteredSelectedDateRestaurants.value.filter((restaurant) => {
+        if (!restaurant.location) {
+          return false
+        }
+
         const { lat, lng } = restaurant.location
-        return typeof lat === 'number' && typeof lng === 'number' && 
-               !isNaN(lat) && !isNaN(lng) &&
-               lat >= -90 && lat <= 90 && 
-               lng >= -180 && lng <= 180
+        return typeof lat === 'number' &&
+          typeof lng === 'number' &&
+          !Number.isNaN(lat) &&
+          !Number.isNaN(lng) &&
+          lat >= -90 &&
+          lat <= 90 &&
+          lng >= -180 &&
+          lng <= 180
       })
     })
 
-    // 지도 설정
-    const zoom = ref(13)
     const mapCenter = computed(() => {
       if (restaurantsWithLocation.value.length > 0) {
-        // 식당들의 중심점 계산
-        const lats = restaurantsWithLocation.value.map(r => r.location.lat)
-        const lngs = restaurantsWithLocation.value.map(r => r.location.lng)
-        const avgLat = lats.reduce((a, b) => a + b, 0) / lats.length
-        const avgLng = lngs.reduce((a, b) => a + b, 0) / lngs.length
+        const lats = restaurantsWithLocation.value.map((restaurant) => restaurant.location.lat)
+        const lngs = restaurantsWithLocation.value.map((restaurant) => restaurant.location.lng)
+        const avgLat = lats.reduce((sum, value) => sum + value, 0) / lats.length
+        const avgLng = lngs.reduce((sum, value) => sum + value, 0) / lngs.length
         return [avgLat, avgLng]
       }
-      // 기본값: 다낭 중심
+
       return [16.0470, 108.2068]
     })
 
+    const allTagOptions = computed(() => {
+      const counts = new Map()
+
+      restaurantsData.forEach((dateEntry) => {
+        dateEntry.restaurants.forEach((restaurant) => {
+          restaurant.foods.forEach((food) => {
+            const tags = Array.isArray(food.tags) ? food.tags : []
+            tags.forEach((tag) => {
+              counts.set(tag, (counts.get(tag) || 0) + 1)
+            })
+          })
+        })
+      })
+
+      return [...counts.entries()]
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => {
+          if (b.count !== a.count) {
+            return b.count - a.count
+          }
+
+          return a.name.localeCompare(b.name, 'ko')
+        })
+    })
+
+    const filteredTagOptions = computed(() => {
+      const query = tagQuery.value.trim().toLowerCase()
+
+      return allTagOptions.value.filter((tag) => {
+        const matchesQuery = !query || tag.name.toLowerCase().includes(query)
+        return matchesQuery && !selectedTags.value.includes(tag.name)
+      })
+    })
+
+    const activeTagTitle = computed(() => {
+      return selectedTags.value.map((tag) => `#${tag}`).join(' ')
+    })
+
+    const tagSearchResults = computed(() => {
+      if (!hasActiveTagFilters.value) {
+        return []
+      }
+
+      return restaurantsData
+        .flatMap((dateEntry) => dateEntry.restaurants.flatMap((restaurant) => {
+          return restaurant.foods
+            .filter(matchesSelectedTags)
+            .map((food) => ({
+              date: dateEntry.date,
+              restaurant: restaurant.restaurant,
+              addedAt: restaurant.addedAt,
+              name: food.name,
+              tags: food.tags || []
+            }))
+        }))
+        .sort((a, b) => new Date(a.addedAt) - new Date(b.addedAt))
+    })
+
+    const toggleTag = (tagName) => {
+      if (selectedTags.value.includes(tagName)) {
+        selectedTags.value = selectedTags.value.filter((tag) => tag !== tagName)
+        return
+      }
+
+      selectedTags.value = [...selectedTags.value, tagName]
+    }
+
+    const clearTagSearch = () => {
+      tagQuery.value = ''
+      selectedTags.value = []
+    }
+
+    const jumpToDate = (date) => {
+      selectedDate.value = date
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+
     const getImageUrl = (imagePath) => {
-      // 1. http 로 시작하는 외부 이미지는 그대로 반환
       if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
         return imagePath
       }
 
-      // 2. Base URL 가져오기
-      // vite.config.js에 설정된 base 값 ('/tia-in-da-nang/')이 자동으로 들어옵니다.
-      // 개발/배포 환경 모두 동일하게 적용됩니다.
-      let base = import.meta.env.BASE_URL
-
-      // 3. 경로 결합을 위해 imagePath 앞의 '/' 제거 (중복 슬래시 방지)
+      const base = import.meta.env.BASE_URL
       const cleanPath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath
-      
-      // 4. 최종 경로 생성
-      // 예: /tia-in-da-nang/ + images/IMG_8277.png
-      const fullPath = `${base}${cleanPath}`
-
-      // 5. (선택사항) 카카오톡 공유 등을 위해 절대 경로가 꼭 필요하다면 아래 로직 유지
-      // 일반적인 <img src> 에서는 fullPath만 리턴해도 충분합니다.
-      if (typeof window !== 'undefined' && !fullPath.startsWith('http')) {
-         // 필요한 경우에만 origin을 붙임
-         // return new URL(fullPath, window.location.origin).href
-      }
-      
-      return fullPath
+      return `${base}${cleanPath}`
     }
 
     const handleImageError = (event) => {
-      // 이미지 로드 실패 시 콘솔에 로그 출력 (디버깅용)
       console.error('이미지 로드 실패:', event.target.src)
-      // 이미지 숨김 처리
       event.target.style.display = 'none'
     }
 
     const goToPreviousDate = () => {
-      const date = new Date(selectedDate.value + 'T00:00:00')
+      const date = new Date(`${selectedDate.value}T00:00:00`)
       date.setDate(date.getDate() - 1)
       const year = date.getFullYear()
       const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -246,66 +443,68 @@ export default {
     }
 
     const goToNextDate = () => {
-      const date = new Date(selectedDate.value + 'T00:00:00')
+      const date = new Date(`${selectedDate.value}T00:00:00`)
       date.setDate(date.getDate() + 1)
       const year = date.getFullYear()
       const month = String(date.getMonth() + 1).padStart(2, '0')
       const day = String(date.getDate()).padStart(2, '0')
       selectedDate.value = `${year}-${month}-${day}`
     }
-    
+
     const goToToday = () => {
       selectedDate.value = getTodayDate()
     }
-    
-    // 날짜 변경 감지하여 URL 업데이트
+
     watch(selectedDate, (newDate) => {
       updateUrl(newDate)
     }, { immediate: true })
-    
-    // 브라우저 뒤로가기/앞으로가기 처리
+
+    const handlePopState = (event) => {
+      if (event.state && event.state.date) {
+        selectedDate.value = event.state.date
+      } else {
+        selectedDate.value = getDateFromUrl()
+      }
+    }
+
     onMounted(() => {
-      window.addEventListener('popstate', (event) => {
-        if (event.state && event.state.date) {
-          selectedDate.value = event.state.date
-        } else {
-          const dateFromUrl = getDateFromUrl()
-          selectedDate.value = dateFromUrl
-        }
-      })
+      window.addEventListener('popstate', handlePopState)
+    })
+
+    onBeforeUnmount(() => {
+      window.removeEventListener('popstate', handlePopState)
     })
 
     const formatDate = (dateString) => {
       const today = getTodayDate()
-      const todayDate = new Date(today + 'T00:00:00')
+      const todayDate = new Date(`${today}T00:00:00`)
       const yesterdayDate = new Date(todayDate)
       yesterdayDate.setDate(yesterdayDate.getDate() - 1)
       const yesterday = `${yesterdayDate.getFullYear()}-${String(yesterdayDate.getMonth() + 1).padStart(2, '0')}-${String(yesterdayDate.getDate()).padStart(2, '0')}`
-      
+
       if (dateString === today) {
         return '오늘'
-      } else if (dateString === yesterday) {
-        return '어제'
-      } else {
-        const date = new Date(dateString + 'T00:00:00')
-        return date.toLocaleDateString('ko-KR', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          weekday: 'short'
-        })
       }
+
+      if (dateString === yesterday) {
+        return '어제'
+      }
+
+      const date = new Date(`${dateString}T00:00:00`)
+      return date.toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        weekday: 'short'
+      })
     }
 
-    // addedAt에서 시간(시:분) 추출 (timezone 무시, 문자열에서 직접 추출)
     const formatTime = (addedAtString) => {
-      // ISO 형식: "2026-01-11T10:35:00.000Z"
-      // T와 : 사이의 시간 부분만 추출
       const match = addedAtString.match(/T(\d{2}):(\d{2})/)
       if (match) {
         return `${match[1]}:${match[2]}`
       }
-      // 매칭 실패 시 기본값 반환
+
       return '00:00'
     }
 
@@ -314,20 +513,31 @@ export default {
     }
 
     return {
-      selectedDate,
-      selectedDateRestaurants,
-      restaurantsWithLocation,
-      zoom,
-      mapCenter,
-      goToPreviousDate,
-      goToNextDate,
-      goToToday,
-      getTodayDate,
+      activeTagTitle,
+      clearTagSearch,
+      filteredSelectedDateRestaurants,
+      filteredTagOptions,
       formatDate,
       formatTime,
       getImageUrl,
+      getTodayDate,
+      goToNextDate,
+      goToPreviousDate,
+      goToToday,
       handleImageError,
-      onMapReady
+      hasActiveTagFilters,
+      jumpToDate,
+      mapCenter,
+      onMapReady,
+      restaurantsWithLocation,
+      selectedDate,
+      selectedDateFoodCount,
+      selectedDateRestaurants,
+      selectedTags,
+      tagQuery,
+      tagSearchResults,
+      toggleTag,
+      zoom
     }
   }
 }
@@ -370,15 +580,34 @@ export default {
   text-align: left;
 }
 
-.date-navigation-section {
-  margin-bottom: 2rem;
+.section-heading {
+  margin-bottom: 1rem;
 }
 
-.date-navigation {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
+.section-heading h2 {
+  margin-bottom: 0.35rem;
+  font-size: 1.5rem;
+  color: #667eea;
+}
+
+.section-heading p {
+  color: #888;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.search-hint {
+  margin-bottom: 1rem;
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.date-navigation-section,
+.tag-search-section,
+.map-section,
+.food-list-section,
+.search-results-section {
+  margin-bottom: 2rem;
   padding: 1.5rem;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
@@ -386,51 +615,29 @@ export default {
 }
 
 @media (prefers-color-scheme: light) {
-  .date-navigation {
+  .date-navigation-section,
+  .tag-search-section,
+  .map-section,
+  .food-list-section,
+  .search-results-section {
     background: rgba(0, 0, 0, 0.03);
     border: 1px solid rgba(0, 0, 0, 0.1);
   }
 }
 
-/* 모바일 반응형 스타일 */
+.date-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
 @media (max-width: 768px) {
   .date-navigation {
-    padding: 0.75rem 0.5rem;
+    padding: 0;
     gap: 0.4rem;
     max-width: 100%;
     box-sizing: border-box;
-  }
-  
-  .btn-nav {
-    width: 44px;
-    height: 44px;
-    padding: 0.5rem;
-    font-size: 1rem;
-  }
-  
-  .date-display {
-    min-width: 0;
-    flex: 1 1 auto;
-    gap: 0.25rem;
-    overflow: hidden;
-  }
-  
-  .date-input {
-    width: 100%;
-    max-width: 100%;
-    font-size: 0.75rem;
-    padding: 0.3rem 0.2rem;
-    box-sizing: border-box;
-  }
-  
-  .date-label {
-    font-size: 0.75rem;
-    text-align: center;
-    word-break: keep-all;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    width: 100%;
   }
 }
 
@@ -469,31 +676,34 @@ export default {
   flex: 1;
 }
 
-.date-input {
-  padding: 0.5rem;
+.date-input,
+.tag-search-input {
+  width: 100%;
+  padding: 0.75rem 0.9rem;
   border: 2px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.05);
   color: inherit;
   font-size: 1rem;
-  text-align: center;
-  cursor: pointer;
-  transition: border-color 0.3s;
+  transition: border-color 0.3s, background 0.3s;
 }
 
-.date-input:focus {
+.date-input {
+  text-align: center;
+  cursor: pointer;
+}
+
+.date-input:focus,
+.tag-search-input:focus {
   outline: none;
   border-color: #667eea;
 }
 
 @media (prefers-color-scheme: light) {
-  .date-input {
+  .date-input,
+  .tag-search-input {
     border-color: rgba(0, 0, 0, 0.2);
     background: rgba(255, 255, 255, 0.8);
-  }
-  
-  .date-input:focus {
-    border-color: #667eea;
   }
 }
 
@@ -511,54 +721,125 @@ export default {
   color: #764ba2;
 }
 
-.btn-today {
-  padding: 0.25rem 0.75rem;
+.btn-today,
+.btn-clear {
+  padding: 0.45rem 0.9rem;
   border: 1px solid #667eea;
-  border-radius: 12px;
+  border-radius: 999px;
   background: rgba(102, 126, 234, 0.1);
   color: #667eea;
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: 0.8rem;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.btn-today:hover {
+.btn-today:hover,
+.btn-clear:hover {
   background: #667eea;
   color: white;
 }
 
-@media (max-width: 768px) {
-  .date-label-wrapper {
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-  
-  .btn-today {
-    font-size: 0.7rem;
-    padding: 0.2rem 0.6rem;
-  }
-}
-
-.map-section {
-  margin-bottom: 2rem;
-  padding: 1.5rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  backdrop-filter: blur(10px);
-}
-
-@media (prefers-color-scheme: light) {
-  .map-section {
-    background: rgba(0, 0, 0, 0.03);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-  }
-}
-
-.map-section h2 {
+.tag-toolbar {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
   margin-bottom: 1rem;
-  font-size: 1.5rem;
+}
+
+.selected-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+}
+
+.tag-chip-list,
+.inline-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.tag-chip,
+.inline-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  border: 1px solid rgba(102, 126, 234, 0.25);
+  background: rgba(102, 126, 234, 0.08);
+  color: inherit;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.tag-chip {
+  padding: 0.65rem 0.85rem;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s, border-color 0.2s;
+}
+
+.tag-chip:hover {
+  transform: translateY(-1px);
+  background: rgba(102, 126, 234, 0.14);
+}
+
+.tag-chip.active,
+.button-tag.active {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border-color: transparent;
+}
+
+.tag-chip-action,
+.tag-count {
+  opacity: 0.8;
+  font-size: 0.75rem;
+}
+
+.search-results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.9rem;
+}
+
+.search-result-card {
+  text-align: left;
+  padding: 1rem;
+  border: 1px solid rgba(102, 126, 234, 0.14);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.2s, border-color 0.2s, background 0.2s;
+}
+
+.search-result-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(102, 126, 234, 0.4);
+  background: rgba(102, 126, 234, 0.08);
+}
+
+.search-result-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.6rem;
+  color: #888;
+  font-size: 0.8rem;
+}
+
+.search-result-name {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 1rem;
+}
+
+.search-result-restaurant {
+  margin-bottom: 0.75rem;
   color: #667eea;
+  font-size: 0.9rem;
 }
 
 .map-container {
@@ -575,39 +856,15 @@ export default {
   width: 100% !important;
 }
 
-@media (max-width: 768px) {
-  .map-container {
-    height: 300px;
-  }
-}
-
-.food-list-section {
-  margin-bottom: 3rem;
-  padding: 1.5rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  backdrop-filter: blur(10px);
-}
-
-@media (prefers-color-scheme: light) {
-  .food-list-section {
-    background: rgba(0, 0, 0, 0.03);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-  }
-}
-
-.food-list-section h2 {
-  margin-bottom: 1rem;
-  font-size: 1.5rem;
-  color: #667eea;
-}
-
-
 .empty-state {
   text-align: center;
   padding: 2rem;
   color: #888;
   font-style: italic;
+}
+
+.empty-state.compact {
+  padding: 1rem 0;
 }
 
 .timeline {
@@ -623,12 +880,6 @@ export default {
   bottom: 0;
   width: 2px;
   background: linear-gradient(to bottom, #667eea, #764ba2);
-}
-
-@media (prefers-color-scheme: light) {
-  .timeline::before {
-    background: linear-gradient(to bottom, #667eea, #764ba2);
-  }
 }
 
 .timeline-item {
@@ -653,12 +904,6 @@ export default {
   background: #667eea;
   border: 2px solid rgba(255, 255, 255, 0.1);
   z-index: 1;
-}
-
-@media (prefers-color-scheme: light) {
-  .timeline-item::before {
-    border-color: rgba(255, 255, 255, 0.9);
-  }
 }
 
 .timeline-time {
@@ -704,16 +949,118 @@ export default {
 }
 
 @media (prefers-color-scheme: light) {
-  .food-item {
+  .food-item,
+  .search-result-card {
     background: rgba(0, 0, 0, 0.02);
   }
-  
-  .food-item:hover {
+
+  .food-item:hover,
+  .search-result-card:hover {
     background: rgba(0, 0, 0, 0.05);
+  }
+
+  .timeline-item::before {
+    border-color: rgba(255, 255, 255, 0.9);
   }
 }
 
+.food-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.food-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.food-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: inherit;
+}
+
+.food-description {
+  font-size: 0.95rem;
+  color: #888;
+  margin: 0.25rem 0;
+  line-height: 1.5;
+}
+
+.button-tag {
+  padding: 0.45rem 0.7rem;
+  cursor: pointer;
+}
+
+.food-images {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.food-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: block;
+}
+
 @media (max-width: 768px) {
+  .btn-nav {
+    width: 44px;
+    height: 44px;
+    padding: 0.5rem;
+    font-size: 1rem;
+  }
+
+  .date-display {
+    min-width: 0;
+    flex: 1 1 auto;
+    gap: 0.25rem;
+    overflow: hidden;
+  }
+
+  .date-input {
+    font-size: 0.75rem;
+    padding: 0.4rem 0.35rem;
+  }
+
+  .date-label {
+    font-size: 0.75rem;
+    text-align: center;
+    word-break: keep-all;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100%;
+  }
+
+  .date-label-wrapper {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .btn-today,
+  .btn-clear {
+    font-size: 0.72rem;
+    padding: 0.3rem 0.7rem;
+  }
+
+  .tag-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .map-container {
+    height: 300px;
+  }
+
   .timeline {
     padding-left: 4rem;
   }
@@ -738,57 +1085,13 @@ export default {
   .timeline-content {
     padding-left: 0.5rem;
   }
-}
 
-.food-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.food-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.food-name {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: inherit;
-}
-
-.food-description {
-  font-size: 0.95rem;
-  color: #888;
-  margin: 0.25rem 0;
-  line-height: 1.5;
-}
-
-.food-images {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 0.75rem;
-  margin-top: 0.5rem;
-}
-
-.food-image {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  display: block;
-}
-
-@media (max-width: 768px) {
   .food-images {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
   }
-  
+
   .food-image {
     width: 100%;
     height: auto;
@@ -797,6 +1100,4 @@ export default {
     object-fit: contain;
   }
 }
-
-
 </style>
