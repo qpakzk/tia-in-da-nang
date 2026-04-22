@@ -107,6 +107,99 @@
         </div>
       </div>
 
+      <section class="tag-search-section">
+        <div class="section-heading">
+          <h2># 태그 검색</h2>
+          <p>태그를 고르면 당일 기록과 전체 여행 기록을 같이 좁혀서 볼 수 있다.</p>
+        </div>
+
+        <div class="tag-toolbar">
+          <input
+            v-model.trim="tagQuery"
+            type="search"
+            class="tag-search-input"
+            placeholder="태그 검색 예: 커피, 해산물, 과일"
+          />
+          <button
+            v-if="selectedTags.length > 0 || tagQuery"
+            @click="clearTagSearch"
+            class="btn-clear"
+            type="button"
+          >
+            초기화
+          </button>
+        </div>
+
+        <p v-if="!tagQuery" class="search-hint">
+          태그 이름을 입력하면 관련 태그가 나타난다.
+        </p>
+
+        <div v-if="selectedTags.length > 0" class="selected-tags">
+          <button
+            v-for="tag in selectedTags"
+            :key="`selected-${tag}`"
+            class="tag-chip active"
+            type="button"
+            @click="toggleTag(tag)"
+          >
+            #{{ tag }} <span class="tag-chip-action">x</span>
+          </button>
+        </div>
+
+        <div v-if="tagQuery && filteredTagOptions.length > 0" class="tag-chip-list">
+          <button
+            v-for="tag in filteredTagOptions"
+            :key="tag.name"
+            class="tag-chip"
+            type="button"
+            @click="toggleTag(tag.name)"
+          >
+            <span>#{{ tag.name }}</span>
+          </button>
+        </div>
+
+        <div v-else-if="tagQuery" class="empty-state compact">
+          검색어에 맞는 태그가 없습니다.
+        </div>
+      </section>
+
+      <section v-if="hasActiveTagFilters" class="tag-results-section">
+        <div class="section-heading">
+          <h2>{{ activeTagTitle }} 전체 기록</h2>
+          <p>{{ tagSearchResults.length }}개의 음식이 선택한 태그를 포함한다. 카드를 누르면 그 날짜로 이동한다.</p>
+        </div>
+
+        <div v-if="tagSearchResults.length === 0" class="empty-state compact">
+          선택한 태그에 맞는 기록이 없습니다.
+        </div>
+
+        <div v-else class="tag-results-grid">
+          <button
+            v-for="result in tagSearchResults"
+            :key="result.key"
+            class="tag-result-card"
+            type="button"
+            @click="jumpToDate(result.date)"
+          >
+            <div class="tag-result-meta">
+              <span>{{ formatDate(result.date) }}</span>
+              <span>{{ formatTime(result.addedAt) }}</span>
+            </div>
+            <strong class="tag-result-name">{{ result.foodName }}</strong>
+            <p class="tag-result-restaurant">{{ result.restaurantName }}</p>
+            <div class="inline-tags">
+              <span
+                v-for="tag in result.tags"
+                :key="`${result.key}-${tag}`"
+                class="inline-tag"
+              >
+                #{{ tag }}
+              </span>
+            </div>
+          </button>
+        </div>
+      </section>
+
       <div v-if="restaurantsWithLocation.length > 0" class="map-section">
         <h2>📍 방문한 식당 위치</h2>
         <div class="map-container">
@@ -138,7 +231,12 @@
       </div>
 
       <div class="food-list-section">
-        <h2>{{ formatDate(selectedDate) }} 먹은 음식</h2>
+        <div class="section-heading">
+          <h2>{{ formatDate(selectedDate) }} 먹은 음식</h2>
+          <p v-if="hasActiveTagFilters">
+            {{ activeTagTitle }} 태그가 붙은 음식만 {{ selectedDateFoodCount }}개 보여준다.
+          </p>
+        </div>
         <p
           v-if="selectedSearchResult && selectedSearchResult.date === selectedDate"
           class="search-selection-note"
@@ -148,22 +246,40 @@
         <div v-if="selectedDateRestaurants.length === 0" class="empty-state">
           이 날짜에 아직 음식을 추가하지 않았습니다.
         </div>
+        <div
+          v-else-if="hasActiveTagFilters && filteredSelectedDateRestaurants.length === 0"
+          class="empty-state"
+        >
+          이 날짜에는 선택한 태그에 맞는 음식이 없습니다.
+        </div>
         <div v-else class="timeline">
-          <div v-for="(restaurant, restaurantIndex) in selectedDateRestaurants" :key="restaurantIndex" class="timeline-item">
+          <div v-for="restaurant in filteredSelectedDateRestaurants" :key="restaurant.restaurantIndex" class="timeline-item">
             <div class="timeline-time">{{ formatTime(restaurant.addedAt) }}</div>
             <div class="timeline-content">
               <div v-if="restaurant.restaurant" class="restaurant-name">📍 {{ restaurant.restaurant }}</div>
               <div
-                v-for="(food, foodIndex) in restaurant.foods"
-                :key="foodIndex"
+                v-for="food in restaurant.foods"
+                :key="food.foodIndex"
                 class="food-item"
-                :class="{ 'food-item-highlighted': selectedSearchKey === buildFoodKey(selectedDate, restaurantIndex, foodIndex) }"
-                :data-food-key="buildFoodKey(selectedDate, restaurantIndex, foodIndex)"
+                :class="{ 'food-item-highlighted': selectedSearchKey === buildFoodKey(selectedDate, restaurant.restaurantIndex, food.foodIndex) }"
+                :data-food-key="buildFoodKey(selectedDate, restaurant.restaurantIndex, food.foodIndex)"
               >
                 <div class="food-content">
                   <div class="food-info">
                     <span class="food-name">{{ food.name }}</span>
                     <p v-if="food.description" class="food-description">{{ food.description }}</p>
+                    <div v-if="food.tags && food.tags.length > 0" class="inline-tags">
+                      <button
+                        v-for="tag in food.tags"
+                        :key="`${buildFoodKey(selectedDate, restaurant.restaurantIndex, food.foodIndex)}-${tag}`"
+                        class="inline-tag button-tag"
+                        :class="{ active: selectedTags.includes(tag) }"
+                        type="button"
+                        @click="toggleTag(tag)"
+                      >
+                        #{{ tag }}
+                      </button>
+                    </div>
                     <div v-if="food.images && food.images.length > 0" class="food-images">
                       <img
                         v-for="(image, imageIndex) in food.images"
@@ -187,7 +303,7 @@
 </template>
 
 <script>
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
 import restaurantsData from './data/restaurants.json'
 
@@ -224,6 +340,17 @@ export default {
       return [...restaurants].sort((a, b) => new Date(a.addedAt) - new Date(b.addedAt))
     }
 
+    const decorateRestaurants = (restaurants = []) => {
+      return sortRestaurantsByAddedAt(restaurants).map((restaurant, restaurantIndex) => ({
+        ...restaurant,
+        restaurantIndex,
+        foods: (restaurant.foods || []).map((food, foodIndex) => ({
+          ...food,
+          foodIndex
+        }))
+      }))
+    }
+
     const normalizeText = (value) => {
       return String(value || '').trim().toLocaleLowerCase('ko-KR')
     }
@@ -258,6 +385,8 @@ export default {
     const selectedDate = ref(getDateFromUrl())
     const searchQuery = ref('')
     const selectedSearchKey = ref(null)
+    const tagQuery = ref('')
+    const selectedTags = ref([])
     
     // URL 업데이트
     const updateUrl = (date) => {
@@ -272,20 +401,21 @@ export default {
       if (!dateEntry) {
         return []
       }
-      return sortRestaurantsByAddedAt(dateEntry.restaurants)
+      return decorateRestaurants(dateEntry.restaurants)
     })
 
     const searchableEntries = computed(() => {
       return restaurantsData.flatMap((dateEntry) => {
-        return sortRestaurantsByAddedAt(dateEntry.restaurants).flatMap((restaurant, restaurantIndex) => {
-          return (restaurant.foods || []).map((food, foodIndex) => ({
-            key: buildFoodKey(dateEntry.date, restaurantIndex, foodIndex),
+        return decorateRestaurants(dateEntry.restaurants).flatMap((restaurant) => {
+          return restaurant.foods.map((food) => ({
+            key: buildFoodKey(dateEntry.date, restaurant.restaurantIndex, food.foodIndex),
             date: dateEntry.date,
             addedAt: restaurant.addedAt,
             restaurantName: restaurant.restaurant || '식당 이름 없음',
             foodName: food.name || '이름 없는 음식',
             description: food.description || '',
-            thumbnail: food.images?.[0] || null
+            thumbnail: food.images?.[0] || null,
+            tags: Array.isArray(food.tags) ? food.tags : []
           }))
         })
       })
@@ -343,9 +473,82 @@ export default {
       return searchableEntries.value.find((entry) => entry.key === selectedSearchKey.value) || null
     })
 
+    const hasActiveTagFilters = computed(() => selectedTags.value.length > 0)
+
+    const matchesSelectedTags = (food) => {
+      if (!hasActiveTagFilters.value) {
+        return true
+      }
+
+      const tags = Array.isArray(food.tags) ? food.tags : []
+      return selectedTags.value.every((tag) => tags.includes(tag))
+    }
+
+    const filteredSelectedDateRestaurants = computed(() => {
+      if (!hasActiveTagFilters.value) {
+        return selectedDateRestaurants.value
+      }
+
+      return selectedDateRestaurants.value
+        .map((restaurant) => ({
+          ...restaurant,
+          foods: restaurant.foods.filter(matchesSelectedTags)
+        }))
+        .filter((restaurant) => restaurant.foods.length > 0)
+    })
+
+    const selectedDateFoodCount = computed(() => {
+      return filteredSelectedDateRestaurants.value.reduce((count, restaurant) => {
+        return count + restaurant.foods.length
+      }, 0)
+    })
+
+    const allTagOptions = computed(() => {
+      const counts = new Map()
+
+      searchableEntries.value.forEach((entry) => {
+        entry.tags.forEach((tag) => {
+          counts.set(tag, (counts.get(tag) || 0) + 1)
+        })
+      })
+
+      return [...counts.entries()]
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => {
+          if (b.count !== a.count) {
+            return b.count - a.count
+          }
+
+          return a.name.localeCompare(b.name, 'ko')
+        })
+    })
+
+    const filteredTagOptions = computed(() => {
+      const query = normalizeText(tagQuery.value)
+
+      return allTagOptions.value.filter((tag) => {
+        const matchesQuery = !query || normalizeText(tag.name).includes(query)
+        return matchesQuery && !selectedTags.value.includes(tag.name)
+      })
+    })
+
+    const activeTagTitle = computed(() => {
+      return selectedTags.value.map((tag) => `#${tag}`).join(' ')
+    })
+
+    const tagSearchResults = computed(() => {
+      if (!hasActiveTagFilters.value) {
+        return []
+      }
+
+      return searchableEntries.value
+        .filter((entry) => matchesSelectedTags(entry))
+        .sort((a, b) => new Date(a.addedAt) - new Date(b.addedAt))
+    })
+
     // location 필드가 유효한 식당만 필터링
     const restaurantsWithLocation = computed(() => {
-      return selectedDateRestaurants.value.filter(restaurant => {
+      return filteredSelectedDateRestaurants.value.filter(restaurant => {
         if (!restaurant.location) return false
         const { lat, lng } = restaurant.location
         return typeof lat === 'number' && typeof lng === 'number' && 
@@ -427,6 +630,20 @@ export default {
       selectedDate.value = getTodayDate()
     }
 
+    const toggleTag = (tagName) => {
+      if (selectedTags.value.includes(tagName)) {
+        selectedTags.value = selectedTags.value.filter((tag) => tag !== tagName)
+        return
+      }
+
+      selectedTags.value = [...selectedTags.value, tagName]
+    }
+
+    const clearTagSearch = () => {
+      tagQuery.value = ''
+      selectedTags.value = []
+    }
+
     const clearSearch = () => {
       searchQuery.value = ''
       selectedSearchKey.value = null
@@ -454,6 +671,11 @@ export default {
       await nextTick()
       requestAnimationFrame(scrollToSearchMatch)
     }
+
+    const jumpToDate = (date) => {
+      selectedDate.value = date
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
     
     // 날짜 변경 감지하여 URL 업데이트
     watch(selectedDate, (newDate) => {
@@ -467,15 +689,21 @@ export default {
     })
     
     // 브라우저 뒤로가기/앞으로가기 처리
+    const handlePopState = (event) => {
+      if (event.state && event.state.date) {
+        selectedDate.value = event.state.date
+      } else {
+        const dateFromUrl = getDateFromUrl()
+        selectedDate.value = dateFromUrl
+      }
+    }
+
     onMounted(() => {
-      window.addEventListener('popstate', (event) => {
-        if (event.state && event.state.date) {
-          selectedDate.value = event.state.date
-        } else {
-          const dateFromUrl = getDateFromUrl()
-          selectedDate.value = dateFromUrl
-        }
-      })
+      window.addEventListener('popstate', handlePopState)
+    })
+
+    onBeforeUnmount(() => {
+      window.removeEventListener('popstate', handlePopState)
     })
 
     const formatDate = (dateString) => {
@@ -517,13 +745,22 @@ export default {
     }
 
     return {
+      activeTagTitle,
+      clearTagSearch,
       selectedDate,
       searchQuery,
       hasSearchQuery,
       searchResults,
       selectedSearchKey,
       selectedSearchResult,
+      tagQuery,
+      selectedTags,
+      hasActiveTagFilters,
       selectedDateRestaurants,
+      filteredSelectedDateRestaurants,
+      selectedDateFoodCount,
+      filteredTagOptions,
+      tagSearchResults,
       restaurantsWithLocation,
       zoom,
       mapCenter,
@@ -531,7 +768,9 @@ export default {
       goToNextDate,
       goToToday,
       goToSearchResult,
+      jumpToDate,
       clearSearch,
+      toggleTag,
       getTodayDate,
       formatDate,
       formatTime,
@@ -581,6 +820,22 @@ export default {
   text-align: left;
 }
 
+.section-heading {
+  margin-bottom: 1rem;
+}
+
+.section-heading h2 {
+  margin-bottom: 0.35rem;
+  font-size: 1.5rem;
+  color: #667eea;
+}
+
+.section-heading p {
+  color: #888;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
 .date-navigation-section {
   margin-bottom: 2rem;
 }
@@ -617,6 +872,164 @@ export default {
 .search-section-description {
   color: #888;
   font-size: 0.95rem;
+}
+
+.tag-search-section,
+.tag-results-section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+
+@media (prefers-color-scheme: light) {
+  .tag-search-section,
+  .tag-results-section {
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+}
+
+.tag-toolbar {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.tag-search-input {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  font-size: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.tag-search-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.14);
+}
+
+.btn-clear {
+  flex-shrink: 0;
+  border: 1px solid rgba(102, 126, 234, 0.35);
+  border-radius: 10px;
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  padding: 0.85rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-clear:hover {
+  background: rgba(102, 126, 234, 0.18);
+}
+
+.search-hint {
+  margin-bottom: 1rem;
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.selected-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+}
+
+.tag-chip-list,
+.inline-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.tag-chip,
+.inline-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid rgba(102, 126, 234, 0.25);
+  background: rgba(102, 126, 234, 0.08);
+  color: inherit;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.tag-chip {
+  padding: 0.65rem 0.85rem;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s, border-color 0.2s;
+}
+
+.tag-chip:hover {
+  transform: translateY(-1px);
+  background: rgba(102, 126, 234, 0.14);
+}
+
+.tag-chip.active,
+.button-tag.active {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border-color: transparent;
+}
+
+.tag-chip-action {
+  opacity: 0.8;
+  font-size: 0.75rem;
+}
+
+.tag-results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.9rem;
+}
+
+.tag-result-card {
+  text-align: left;
+  padding: 1rem;
+  border: 1px solid rgba(102, 126, 234, 0.14);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.2s, border-color 0.2s, background 0.2s;
+}
+
+.tag-result-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(102, 126, 234, 0.4);
+  background: rgba(102, 126, 234, 0.08);
+}
+
+.tag-result-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.6rem;
+  color: #888;
+  font-size: 0.8rem;
+}
+
+.tag-result-name {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 1rem;
+}
+
+.tag-result-restaurant {
+  margin-bottom: 0.75rem;
+  color: #667eea;
+  font-size: 0.9rem;
 }
 
 .search-count {
@@ -775,12 +1188,26 @@ export default {
     background: rgba(255, 255, 255, 0.8);
   }
 
+  .tag-search-input {
+    border-color: rgba(0, 0, 0, 0.12);
+    background: rgba(255, 255, 255, 0.8);
+  }
+
   .search-result-card {
     border-color: rgba(0, 0, 0, 0.08);
     background: rgba(255, 255, 255, 0.72);
   }
 
   .search-result-card:hover {
+    background: rgba(102, 126, 234, 0.08);
+  }
+
+  .tag-result-card {
+    border-color: rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.72);
+  }
+
+  .tag-result-card:hover {
     background: rgba(102, 126, 234, 0.08);
   }
 }
@@ -800,6 +1227,11 @@ export default {
   }
 
   .search-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tag-toolbar {
     flex-direction: column;
     align-items: stretch;
   }
@@ -1058,6 +1490,10 @@ export default {
   font-style: italic;
 }
 
+.empty-state.compact {
+  padding: 1rem 0;
+}
+
 .timeline {
   position: relative;
   padding-left: 5rem;
@@ -1225,6 +1661,10 @@ export default {
   color: #888;
   margin: 0.25rem 0;
   line-height: 1.5;
+}
+
+.button-tag {
+  cursor: pointer;
 }
 
 .food-images {
